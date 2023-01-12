@@ -1,0 +1,14 @@
+{
+    "table": "fooTable",
+    "indexType": "primary",
+    "partitionColumn": "vendorId",
+    "dataBlocks": 
+        [
+            {
+                "filePath": "../data/yellow_tripdata_2022-07.parquet",
+                "min": "x",
+                "max": "y"
+            }
+        ],
+    "lastModified": 12345
+}

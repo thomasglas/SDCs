@@ -1,0 +1,77 @@
+{
+    "tables":
+        [
+            {
+                "name": "fooTable",
+                "columns": 
+                    [
+                        {
+                            "name": "VendorID",
+                            "dataType": "int64"
+                        },
+                        {
+                            "name": "fare_amount",
+                            "dataType": "double"
+                        },
+                        {
+                            "name": "tip_amount",
+                            "dataType": "double"
+                        }
+                    ],
+                "workload": 
+                    [
+                        {
+                            "column": "fooColumn",
+                            "operator": "=",
+                            "constant": "5",
+                            "booleanMask": "path_to_file",
+                            "executionTimes": 
+                                [
+                                    {
+                                        "timestamp": 12345
+                                    },
+                                    {
+                                        "timestamp": 23456
+                                    }
+                                ]
+                        }
+                    ],
+                "indexes":
+                    [
+                        {
+                            "type": "primary",
+                            "createdAt": 12345,
+                            "filePath": "../data/primary_index.json",
+                            "columns":
+                                [
+                                    {
+                                        "name": "vendorId"
+                                    }
+                                ],
+                            "partitionColumn": "vendorId"
+                        },
+                        {
+                            "type": "qdTree",
+                            "createdAt": 12345,
+                            "filePath": "path_to_file",
+                            "columns":
+                                [
+                                    {
+                                        "name": "fooColumn"
+                                    }
+                                ],
+                            "filtersUsed":
+                                [
+                                    {
+                                        "column": "fooColumn",
+                                        "operator": "=",
+                                        "constant": "5"
+                                    }
+                                ]
+                        }
+                    ]
+            }
+        ],
+    "version": 1,
+    "lastModified": 12345
+}
