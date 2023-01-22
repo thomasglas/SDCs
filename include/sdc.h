@@ -10,26 +10,19 @@
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>
 #include <parquet/exception.h>
+#include <fstream>
 
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
+
+#include "qd_tree.h"
+#include "filter.h"
 
 namespace SDC{
 
 enum dataType{
     int64,
     double_
-};
-
-class Filter{
-    public:
-        Filter(std::string col, std::string op, std::string const_, bool is_col)
-        :column(col), operator_(op), constant_or_column(const_), is_col(is_col)
-        {}
-        std::string column;
-        std::string operator_;
-        std::string constant_or_column;
-        bool is_col;
 };
 
 class Dataframe {
@@ -40,6 +33,7 @@ class Dataframe {
         void head(int rows=0);
         void filter(std::string column, std::string operator_, std::string constant, bool is_col=false);
         void projection(std::vector<std::string> projections);
+        void optimize();
 
     private:
         std::string table_name;
@@ -49,7 +43,10 @@ class Dataframe {
         json metadata;
         void update_metadata();
         void load_metadata();
-        json load_index();
+        json load_index(bool get_primary=false);
+        std::string get_query_id();
+        void write_boolean_filter(Filter& filter, const std::string& filepath);
+        std::shared_ptr<arrow::Array> read_boolean_filter(const std::string& filepath);
         std::shared_ptr<arrow::Table> load_data(json index);
 
         // arrow & parquet

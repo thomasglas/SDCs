@@ -1,77 +1,81 @@
 {
-    "tables":
-        [
+  "lastModified": 12345,
+  "tables": [
+    {
+      "columns": [
+        {
+          "dataType": "int64",
+          "name": "VendorID"
+        },
+        {
+          "dataType": "double",
+          "name": "fare_amount"
+        },
+        {
+          "dataType": "double",
+          "name": "tip_amount"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
             {
-                "name": "fooTable",
-                "columns": 
-                    [
-                        {
-                            "name": "VendorID",
-                            "dataType": "int64"
-                        },
-                        {
-                            "name": "fare_amount",
-                            "dataType": "double"
-                        },
-                        {
-                            "name": "tip_amount",
-                            "dataType": "double"
-                        }
-                    ],
-                "workload": 
-                    [
-                        {
-                            "column": "fooColumn",
-                            "operator": "=",
-                            "constant": "5",
-                            "booleanMask": "path_to_file",
-                            "executionTimes": 
-                                [
-                                    {
-                                        "timestamp": 12345
-                                    },
-                                    {
-                                        "timestamp": 23456
-                                    }
-                                ]
-                        }
-                    ],
-                "indexes":
-                    [
-                        {
-                            "type": "primary",
-                            "createdAt": 12345,
-                            "filePath": "../data/primary_index.json",
-                            "columns":
-                                [
-                                    {
-                                        "name": "vendorId"
-                                    }
-                                ],
-                            "partitionColumn": "vendorId"
-                        },
-                        {
-                            "type": "qdTree",
-                            "createdAt": 12345,
-                            "filePath": "path_to_file",
-                            "columns":
-                                [
-                                    {
-                                        "name": "fooColumn"
-                                    }
-                                ],
-                            "filtersUsed":
-                                [
-                                    {
-                                        "column": "fooColumn",
-                                        "operator": "=",
-                                        "constant": "5"
-                                    }
-                                ]
-                        }
-                    ]
+              "name": "vendorId"
             }
-        ],
-    "version": 1,
-    "lastModified": 12345
+          ],
+          "createdAt": 12345,
+          "filePath": "../data/primary_index.json",
+          "partitionColumn": "vendorId",
+          "type": "primary"
+        },
+        {
+          "columns": [
+            {
+              "name": "fooColumn"
+            }
+          ],
+          "createdAt": 12345,
+          "filePath": "path_to_file",
+          "filtersUsed": [
+            {
+              "column": "fooColumn",
+              "constant": "5",
+              "operator": "="
+            }
+          ],
+          "type": "qdTree"
+        }
+      ],
+      "name": "NYCtaxi",
+      "num_columns": 19,
+      "num_rows": 3174394,
+      "workload": [
+        {
+          "executionCount": 3,
+          "filters": [
+            {
+              "booleanMask": "../data/boolean_filter_VendorID",
+              "column": "VendorID",
+              "constantOrColumn": "2",
+              "isCol": false,
+              "operator": "<"
+            }
+          ],
+          "projections": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            }
+          ],
+          "queryID": "NYCtaxiVendorID<2VendorIDfare_amounttip_amount"
+        }
+      ]
+    }
+  ],
+  "version": 1
 }

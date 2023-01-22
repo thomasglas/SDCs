@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <bitset>
 
 namespace SDC{
 
@@ -30,7 +31,7 @@ void Dataframe::head(int rows){
 
     // update metadata (& upload boolean mask)
     update_metadata();
-};
+}
 
 dataType Dataframe::get_col_dataType(std::string column){
     dataType result;
@@ -46,7 +47,7 @@ dataType Dataframe::get_col_dataType(std::string column){
         }
     }
     return result;
-};
+}
 
 arrow::Status Dataframe::apply_filters_projections(std::shared_ptr<arrow::Table>& table, std::shared_ptr<arrow::Array> boolean_mask){
     std::vector<std::shared_ptr<arrow::Array>> filtered_arrays;
@@ -77,18 +78,17 @@ arrow::Status Dataframe::apply_filters_projections(std::shared_ptr<arrow::Table>
     table = arrow::Table::Make(schema, filtered_arrays);
     
     return arrow::Status::OK();
-};
+}
 
 arrow::Status Dataframe::compute_filter_mask(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Array>& mask){
     
     std::vector<std::shared_ptr<arrow::Array>> boolean_masks;
     for(auto& filter: filters){
         std::shared_ptr<arrow::Array> column_array = table->GetColumnByName(filter.column)->chunk(0); 
+        arrow::Datum boolean_mask_datum;
         if(filter.is_col){
             std::shared_ptr<arrow::Array> compare_column_array = table->GetColumnByName(filter.constant_or_column)->chunk(0); 
-            arrow::Datum boolean_mask_datum;
             ARROW_ASSIGN_OR_RAISE(boolean_mask_datum,arrow::compute::CallFunction(get_arrow_compute_operator(filter.operator_), {column_array, compare_column_array}));
-            boolean_masks.push_back(std::move(boolean_mask_datum).make_array());
         }
         else{
             std::shared_ptr<arrow::Scalar> constant;
@@ -102,10 +102,10 @@ arrow::Status Dataframe::compute_filter_mask(std::shared_ptr<arrow::Table> table
                     break;
                 }
             }
-            arrow::Datum boolean_mask_datum;
             ARROW_ASSIGN_OR_RAISE(boolean_mask_datum,arrow::compute::CallFunction(get_arrow_compute_operator(filter.operator_), {column_array, constant}));
-            boolean_masks.push_back(std::move(boolean_mask_datum).make_array());
         }
+        filter.boolean_mask = std::move(boolean_mask_datum).make_array();
+        boolean_masks.push_back(filter.boolean_mask);
     }
 
     // combine masks
@@ -117,7 +117,7 @@ arrow::Status Dataframe::compute_filter_mask(std::shared_ptr<arrow::Table> table
     }
 
     return arrow::Status::OK();
-};
+}
 
 std::string Dataframe::get_arrow_compute_operator(std::string filter_operator){
     std::string result;
@@ -141,25 +141,29 @@ std::string Dataframe::get_arrow_compute_operator(std::string filter_operator){
     }
 
     return result;
-};
+}
 
 void Dataframe::projection(std::vector<std::string> columns){
     for(auto& col: columns){
         required_columns.push_back(col);
         projections.push_back(col);
     }
-};
+}
 
 void Dataframe::filter(std::string column, std::string operator_, std::string constant, bool is_col){
     required_columns.push_back(column);
     filters.push_back(Filter(column, operator_, constant, is_col));
-};
+}
 
-json Dataframe::load_index(){
+json Dataframe::load_index(bool get_primary){
     json indexes = metadata["indexes"];
-    if(indexes.size()==1){
-        std::ifstream f(indexes[0]["filePath"]);
-        return json::parse(f);
+    if(indexes.size()==1 || get_primary){
+        for(auto index: indexes){
+            if(index["type"]=="primary"){
+                std::ifstream f(index["filePath"]);
+                return json::parse(f);
+            }
+        }        
     }
     else{
         // find most suitable index (has columns, built on filters)
@@ -169,7 +173,7 @@ json Dataframe::load_index(){
         std::ifstream f(indexes[0]["filePath"]);
         return json::parse(f);
     }
-};
+}
 
 std::shared_ptr<arrow::Table> Dataframe::load_data(json index){
     assert(table_name==index["table"]);
@@ -186,7 +190,7 @@ std::shared_ptr<arrow::Table> Dataframe::load_data(json index){
         std::cout << result.status().ToString() << std::endl;
     }
     return result.ValueOrDie();
-};
+}
 
 std::shared_ptr<arrow::Table> Dataframe::load_parquet(std::string file_path){
     std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -215,17 +219,169 @@ void Dataframe::load_metadata(){
         }
     } 
     std::cout << "table " + table_name + " not found" << std::endl;
-};
+}
 
+void Dataframe::write_boolean_filter(Filter& filter, const std::string& filepath){
+    
+    std::ofstream out_file;
+    // trunc will clear the file
+    out_file.open(filepath, out_file.binary | out_file.trunc);
+    if(!out_file.is_open()){
+        std::cerr << "Failed to open " << filepath << std::endl;
+    }
+    else{
+        auto array = std::static_pointer_cast<arrow::BooleanArray>(filter.boolean_mask);
+        size_t mask_length = filter.boolean_mask->length();
+        size_t num_bytes = mask_length/8 + (mask_length%8 != 0);
+        for(int i=0; i<num_bytes; i++){
+            // ch: 00000000
+            char ch = 0;
+            for(int j=0; j<8; j++){
+                int k = i * 8 + j;
+                if(k<mask_length){
+                    ch |= (array->Value(k) << (8-j-1));
+                    // std::cout << std::bitset<8>(ch) << std::endl;
+                }
+            }
+            out_file.write(&ch, sizeof(ch));
+        }
+    }
+}
+
+// add each used filter to workload, add boolean masks for each filter
 void Dataframe::update_metadata(){
-    // // read a JSON file
-    // std::ifstream i("file.json");
-    // json j;
-    // i >> j;
 
-    // // write prettified JSON to another file
-    // std::ofstream o("pretty.json");
-    // o << std::setw(4) << j << std::endl;
-};
+    // update metadata
+    std::string query_id = get_query_id();
+    bool query_found = false;
+    for(auto& workload: metadata["workload"]){
+        if(workload["queryID"]==query_id){
+            int executionCount = workload["executionCount"];
+            workload["executionCount"] = ++executionCount;
+            query_found = true;
+            break;
+        }
+    }
+    if(!query_found){
+        json metadata_workload;
+        metadata_workload["queryID"] = query_id;
+        metadata_workload["executionCount"] = 1;
+
+        json metadata_projections;
+        for(auto projection: projections){
+            json metadata_projection;
+            metadata_projection["name"] = projection;
+            metadata_projections.push_back(metadata_projection);
+        }
+
+        json metadata_filters;
+        for(auto filter: filters){
+            json metadata_filter;
+            metadata_filter["column"] = filter.column;
+            metadata_filter["operator"] = filter.operator_;
+            metadata_filter["constantOrColumn"] = filter.constant_or_column;
+            metadata_filter["isCol"] = filter.is_col;
+            // write arrow boolean array to disk
+            std::string boolean_mask_file = "../data/boolean_filter_"+filter.column;
+            write_boolean_filter(filter, boolean_mask_file); 
+            metadata_filter["booleanMask"] = boolean_mask_file;
+            metadata_filters.push_back(metadata_filter);
+        }
+
+        metadata_workload["filters"] = metadata_filters;
+        metadata_workload["projections"] = metadata_projections;
+            
+        metadata["workload"].push_back(metadata_workload);
+    }
+
+    // read in file, replace table metadata
+    std::ifstream f("../data/metadata.json");
+    json metadata_json = json::parse(f);
+    for(auto& table: metadata_json["tables"]){
+        if(table["name"]==table_name){
+            table = metadata;
+            break;
+        }
+    } 
+
+    // write out updated metadata
+    std::ofstream o("../data/metadata.json");
+    o << std::setw(2) << metadata_json << std::endl;
+}
+
+std::string Dataframe::get_query_id(){
+    std::string query_id = table_name;
+    for(auto filter: filters){
+        query_id += filter.column + filter.operator_ + filter.constant_or_column;
+    }
+    for(auto projection: projections){
+        query_id += projection;
+    }
+    return query_id;
+}
+
+std::shared_ptr<arrow::Array> Dataframe::read_boolean_filter(const std::string& filepath){
+    std::ifstream in_file;
+    std::shared_ptr<arrow::Array> boolean_filter;
+    auto builder = arrow::BooleanBuilder();
+    uint32_t num_valid_bits = metadata["num_rows"];
+    in_file.open(filepath, in_file.binary);
+    if(!in_file.is_open()){
+        std::cerr << "Failed to open " << filepath << std::endl;
+    }
+    else{
+        int bit_counter = 0;
+        while(in_file.peek()!=EOF){
+            char ch;
+            in_file.read(&ch, sizeof(ch));
+            for (int i=0; i<8; i++){
+                if(bit_counter<num_valid_bits){
+                    bool bit = (ch >> (8-1-i)) & 1U;
+                    arrow::Status a = builder.Append(bit);
+                    bit_counter++;
+                }
+            }
+        }
+    }
+    auto st = builder.Finish(&boolean_filter);
+    assert(st.ok());
+
+    return boolean_filter;
+}
+
+void Dataframe::optimize(){
+    // get meta data
+    load_metadata();
+
+    // build qd tree
+        // get all filters and projections
+    std::vector<Filter> workload_filters;
+    std::vector<std::string> workload_projections;
+    for(const auto& metadata_workload: metadata["workload"]){
+        for(const auto& metadata_filter: metadata_workload["filters"]){
+            // load workload filters into Arrow arrays 
+            Filter filter(metadata_filter["column"], metadata_filter["operator"], metadata_filter["constantOrColumn"], metadata_filter["isCol"]);
+            filter.boolean_mask = read_boolean_filter(metadata_filter["booleanMask"]);
+            workload_filters.push_back(filter);
+        }
+        for(const auto& metadata_projection: metadata_workload["projections"]){
+            // load workload filters into Arrow arrays 
+            workload_projections.push_back(metadata_projection["name"]);
+        }
+    }
+        
+    // build qd tree using:
+        // columns used in workload -> go through all queries' projections & filters
+        // boolean_masks for filters used -> 
+    QDTree qd = QDTree(workload_filters, workload_projections, metadata["workload"]);
+
+    // get data from primary index
+    json primary_index = load_index(true);
+    std::shared_ptr<arrow::Table> data = load_data(primary_index);
+
+    // write new data blocks, using qd tree filters on primary data
+    // write qd tree index file
+    // update metadata
+}
 
 }

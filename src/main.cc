@@ -43,11 +43,13 @@ arrow::Status write_parquet_file(const arrow::Table& table) {
 
 int main(int argc, char** argv) {
 
-  SDC::Dataframe table("fooTable");
-  table.filter("fare_amount", ">", "10");
-  table.filter("tip_amount", ">=", "fare_amount", true);
-  table.projection({"VendorID", "fare_amount", "tip_amount"});
-  table.head(10);
+  SDC::Dataframe table("NYCtaxi");
+  // table.filter("VendorID", "<", "2");
+  // table.filter("fare_amount", ">", "10");
+  // table.filter("tip_amount", ">=", "fare_amount", true);
+  // table.projection({"VendorID", "fare_amount", "tip_amount"});
+  // table.head(10);
+  table.optimize();
 
   return 0;
 }
