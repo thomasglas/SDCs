@@ -27,29 +27,15 @@
 
 #include "sdc.h"
 
-// Write out the data as a Parquet file
-arrow::Status write_parquet_file(const arrow::Table& table) {
-  std::cout << "Writing " << table.num_rows() << " rows and " << table.num_columns() << " columns." << std::endl;
-  std::shared_ptr<arrow::io::FileOutputStream> outfile;
-  PARQUET_ASSIGN_OR_THROW(outfile, arrow::io::FileOutputStream::Open("filtered_data.parquet"));
-  // The last argument to the function call is the size of the RowGroup in
-  // the parquet file. Normally you would choose this to be rather large but
-  // for the example, we use a small value to have multiple RowGroups.
-  PARQUET_THROW_NOT_OK(parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 1000000));
-
-  std::cout << "Done writing." << std::endl;
-  return arrow::Status::OK();
-}
-
 int main(int argc, char** argv) {
 
   SDC::Dataframe table("NYCtaxi");
   // table.filter("VendorID", "<", "3");
-  table.filter("fare_amount", ">", "10");
-  table.filter("tip_amount", ">", "5");
+  // table.filter("fare_amount", ">", "10");
+  // table.filter("tip_amount", ">", "5");
   // table.filter("tip_amount", ">=", "fare_amount", true);
-  table.projection({"VendorID", "fare_amount", "tip_amount"});
-  table.head(10);
+  // table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
+  // table.head(10);
   table.optimize();
 
   return 0;

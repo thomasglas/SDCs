@@ -1,0 +1,61 @@
+{
+  "dataBlocks": [
+    {
+      "filePath": "../data/NYCtaxi/qd_index/data_block_0",
+      "ranges": [
+        {
+          "colDataType": "double",
+          "column": "tip_amount",
+          "max": "",
+          "maxInclusive": true,
+          "min": "5",
+          "minInclusive": false
+        }
+      ]
+    },
+    {
+      "filePath": "../data/NYCtaxi/qd_index/data_block_1",
+      "ranges": [
+        {
+          "colDataType": "double",
+          "column": "tip_amount",
+          "max": "5",
+          "maxInclusive": true,
+          "min": "",
+          "minInclusive": true
+        },
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "",
+          "maxInclusive": true,
+          "min": "10",
+          "minInclusive": false
+        }
+      ]
+    },
+    {
+      "filePath": "../data/NYCtaxi/qd_index/data_block_2",
+      "ranges": [
+        {
+          "colDataType": "double",
+          "column": "tip_amount",
+          "max": "5",
+          "maxInclusive": true,
+          "min": "",
+          "minInclusive": true
+        },
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "10",
+          "maxInclusive": true,
+          "min": "",
+          "minInclusive": true
+        }
+      ]
+    }
+  ],
+  "indexType": "qdTree",
+  "table": "NYCtaxi"
+}

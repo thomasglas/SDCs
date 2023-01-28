@@ -49,6 +49,7 @@ class QDNode {
                 case nodeType::innerNode:{
                     return std::to_string(num_tuples) + "(" + true_child->print() + "," + false_child->print() + ")";
                 }
+                default: return "";
             }
         };
         
@@ -67,23 +68,20 @@ class QDNode {
 class QDTree {
     public:
         QDTree(std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata);
-    private:
-        std::string table;
+        
+        std::vector<std::shared_ptr<QDNode>> leafNodes;
 
-        // columns contained in data blocks
+        // columns used by workload
         std::vector<std::string> columns;
 
-        // filters used by data block
+        // filters used by workload
         std::vector<Filter> filters;
+    private:
 
         json metadata;
 
         // root node of QDTree
         std::shared_ptr<QDNode> root;
-        
-        std::vector<std::shared_ptr<QDNode>> leafNodes;
-
-        uint64_t discarded_tuples(Filter& filter, json& workload);
 
         size_t leaf_min_size = 100000;
 

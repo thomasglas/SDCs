@@ -11,7 +11,6 @@ namespace SDC{
 QDTree::QDTree(std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata)
 :columns(projections), filters(filters), metadata(metadata){
     assert(filters.size()>0);
-    // init root: find first cut
     root = std::make_shared<QDNode>();
     root->num_tuples = metadata["num_rows"];
 
@@ -32,12 +31,6 @@ QDTree::QDTree(std::vector<Filter>& filters, std::vector<std::string>& projectio
     }
     
     std::cout << root->print() << std::endl;
-
-    // build data blocks for leaf nodes
-    // apply ranges as filters on data
-    // write resulting data to parquet files
-    // create index metadata, add path to main metadata
-    // add data blocks to index metadata
 }
 
 std::shared_ptr<arrow::Array> QDTree::get_filter_mask(json& query_filter){
