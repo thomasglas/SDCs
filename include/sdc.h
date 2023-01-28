@@ -17,13 +17,9 @@ using json = nlohmann::json;
 
 #include "qd_tree.h"
 #include "filter.h"
+#include "types.h"
 
 namespace SDC{
-
-enum dataType{
-    int64,
-    double_
-};
 
 class Dataframe {
     public:

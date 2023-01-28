@@ -106,6 +106,10 @@ arrow::Status Dataframe::compute_filter_mask(std::shared_ptr<arrow::Table> table
         }
         filter.boolean_mask = std::move(boolean_mask_datum).make_array();
         boolean_masks.push_back(filter.boolean_mask);
+
+        auto st = arrow::compute::CallFunction("array_filter", {filter.boolean_mask, filter.boolean_mask});
+        filter.true_count = st.ValueOrDie().make_array()->length();
+        filter.false_count = filter.boolean_mask->length() - filter.true_count;
     }
 
     // combine masks
@@ -152,7 +156,7 @@ void Dataframe::projection(std::vector<std::string> columns){
 
 void Dataframe::filter(std::string column, std::string operator_, std::string constant, bool is_col){
     required_columns.push_back(column);
-    filters.push_back(Filter(column, operator_, constant, is_col));
+    filters.push_back(Filter(column, operator_, constant, is_col, get_col_dataType(column)));
 }
 
 json Dataframe::load_index(bool get_primary){
@@ -163,7 +167,9 @@ json Dataframe::load_index(bool get_primary){
                 std::ifstream f(index["filePath"]);
                 return json::parse(f);
             }
-        }        
+        }       
+        // should not reach this
+        assert(1==2);
     }
     else{
         // find most suitable index (has columns, built on filters)
@@ -281,6 +287,8 @@ void Dataframe::update_metadata(){
             metadata_filter["operator"] = filter.operator_;
             metadata_filter["constantOrColumn"] = filter.constant_or_column;
             metadata_filter["isCol"] = filter.is_col;
+            metadata_filter["trueCount"] = filter.true_count;
+            metadata_filter["falseCount"] = filter.false_count;
             // write arrow boolean array to disk
             std::string boolean_mask_file = "../data/boolean_filter_"+filter.column;
             write_boolean_filter(filter, boolean_mask_file); 
@@ -360,7 +368,9 @@ void Dataframe::optimize(){
     for(const auto& metadata_workload: metadata["workload"]){
         for(const auto& metadata_filter: metadata_workload["filters"]){
             // load workload filters into Arrow arrays 
-            Filter filter(metadata_filter["column"], metadata_filter["operator"], metadata_filter["constantOrColumn"], metadata_filter["isCol"]);
+            Filter filter(metadata_filter["column"], metadata_filter["operator"], metadata_filter["constantOrColumn"], metadata_filter["isCol"], get_col_dataType(metadata_filter["column"]));
+            filter.true_count = metadata_filter["trueCount"];
+            filter.false_count = metadata_filter["falseCount"];
             filter.boolean_mask = read_boolean_filter(metadata_filter["booleanMask"]);
             workload_filters.push_back(filter);
         }
@@ -373,7 +383,7 @@ void Dataframe::optimize(){
     // build qd tree using:
         // columns used in workload -> go through all queries' projections & filters
         // boolean_masks for filters used -> 
-    QDTree qd = QDTree(workload_filters, workload_projections, metadata["workload"]);
+    QDTree qd = QDTree(workload_filters, workload_projections, metadata);
 
     // get data from primary index
     json primary_index = load_index(true);

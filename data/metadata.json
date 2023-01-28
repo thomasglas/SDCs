@@ -51,14 +51,25 @@
       "num_rows": 3174394,
       "workload": [
         {
-          "executionCount": 3,
+          "executionCount": 44,
           "filters": [
             {
-              "booleanMask": "../data/boolean_filter_VendorID",
-              "column": "VendorID",
-              "constantOrColumn": "2",
+              "booleanMask": "../data/boolean_filter_fare_amount",
+              "column": "fare_amount",
+              "constantOrColumn": "10",
+              "falseCount": 1607524,
               "isCol": false,
-              "operator": "<"
+              "operator": ">",
+              "trueCount": 1566870
+            },
+            {
+              "booleanMask": "../data/boolean_filter_tip_amount",
+              "column": "tip_amount",
+              "constantOrColumn": "5",
+              "falseCount": 2809979,
+              "isCol": false,
+              "operator": ">",
+              "trueCount": 364415
             }
           ],
           "projections": [
@@ -72,7 +83,7 @@
               "name": "tip_amount"
             }
           ],
-          "queryID": "NYCtaxiVendorID<2VendorIDfare_amounttip_amount"
+          "queryID": "NYCtaxifare_amount>10tip_amount>5VendorIDfare_amounttip_amount"
         }
       ]
     }

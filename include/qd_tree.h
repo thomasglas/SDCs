@@ -10,40 +10,63 @@
 using json = nlohmann::json;
 
 #include "filter.h"
+#include "types.h"
 
 namespace SDC{
+
+class QDNodeRange {
+    public:
+        std::string column;
+        std::string min;
+        bool min_inclusive;
+        std::string max;
+        bool max_inclusive;
+        dataType col_data_type;
+
+        QDNodeRange(std::string column, std::string min, bool min_inclusive, std::string max, bool max_inclusive, dataType col_data_type)
+        :column(column), min(min), max(max), col_data_type(col_data_type), min_inclusive(min_inclusive), max_inclusive(max_inclusive){};
+};
 
 class QDNode {
     public:
         enum nodeType{
             leafNode,
-            innerNode
+            innerNode,
+            base
         } type;
+
+        std::vector<QDNodeRange> ranges;
+        std::shared_ptr<QDNode> parent_node;
+        int num_tuples;
+        bool is_true_child;
+        std::shared_ptr<arrow::Array> tuples;
+
+        std::string print(){
+            switch(type){
+                case nodeType::leafNode:{
+                    return std::to_string(num_tuples);
+                }
+                case nodeType::innerNode:{
+                    return std::to_string(num_tuples) + "(" + true_child->print() + "," + false_child->print() + ")";
+                }
+            }
+        };
         
-    QDNode(nodeType type)
-    :type(type){};
-};
-
-class QDLeafNode: public QDNode {
-    public:
-        QDLeafNode()
-        :QDNode(nodeType::leafNode){};
-        std::string file_path;
-        std::map<std::string,std::string> columns_ranges; // map columns to range contained
-};
-
-class QDInnerNode: public QDNode {
-    public:
-        QDInnerNode(Filter filter)
-        :QDNode(nodeType::innerNode),filter(filter){};
+        // inner node
         Filter filter;
         std::shared_ptr<QDNode> true_child;
         std::shared_ptr<QDNode> false_child;
+        
+        // leaf node
+        std::string filePath;
+
+        QDNode()
+        :type(nodeType::base),tuples(nullptr),parent_node(nullptr){};
 };
 
 class QDTree {
     public:
-        QDTree(std::vector<Filter>& filters, std::vector<std::string>& projections, json workload);
+        QDTree(std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata);
     private:
         std::string table;
 
@@ -53,10 +76,22 @@ class QDTree {
         // filters used by data block
         std::vector<Filter> filters;
 
+        json metadata;
+
         // root node of QDTree
         std::shared_ptr<QDNode> root;
+        
+        std::vector<std::shared_ptr<QDNode>> leafNodes;
 
-        uint64_t discarded_tuples(Filter filter, json workload);
+        uint64_t discarded_tuples(Filter& filter, json& workload);
+
+        size_t leaf_min_size = 100000;
+
+        std::vector<QDNodeRange> add_range(std::vector<QDNodeRange> ranges, const Filter& filter, bool true_false_child);
+
+        bool make_cut(std::shared_ptr<QDNode>& node, std::vector<SDC::Filter> &filters, json& workload);
+
+        std::shared_ptr<arrow::Array> get_filter_mask(json& query_filter);
 };
 
 }
