@@ -59,6 +59,11 @@
               "column": "tip_amount",
               "constant": "10",
               "operator": "<"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "5",
+              "operator": ">"
             }
           ],
           "type": "qdTree"
@@ -117,6 +122,15 @@
               "isCol": false,
               "operator": "<",
               "trueCount": 3038211
+            },
+            {
+              "booleanMask": "../data/NYCtaxi/boolean_filter_tip_amount",
+              "column": "tip_amount",
+              "constantOrColumn": "5",
+              "falseCount": 2809979,
+              "isCol": false,
+              "operator": ">",
+              "trueCount": 364415
             }
           ],
           "projections": [
@@ -133,7 +147,7 @@
               "name": "payment_type"
             }
           ],
-          "queryID": "NYCtaxitip_amount<10VendorIDfare_amounttip_amountpayment_type"
+          "queryID": "NYCtaxitip_amount<10tip_amount>5VendorIDfare_amounttip_amountpayment_type"
         }
       ]
     }

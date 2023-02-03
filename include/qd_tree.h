@@ -49,7 +49,7 @@ class QDNode {
                 case nodeType::innerNode:{
                     return std::to_string(num_tuples) + "(" + true_child->print() + "," + false_child->print() + ")";
                 }
-                default: return "";
+                default: return "error";
             }
         };
         

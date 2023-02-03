@@ -23,7 +23,7 @@ void Dataframe::head(int rows){
     std::cout << "total rows: " << table->num_rows() << std::endl;
 
     // apply filters
-    std::shared_ptr<arrow::Array> filter_mask;
+    std::vector<std::shared_ptr<arrow::Array>> filter_mask;
     arrow::Status st = compute_filter_mask(table, filter_mask);
     assert(st.ok()); 
 
@@ -54,72 +54,101 @@ dataType Dataframe::get_col_dataType(std::string column){
     return result;
 }
 
-std::shared_ptr<arrow::Table> Dataframe::apply_filters_projections(const std::shared_ptr<arrow::Table>& table, const std::vector<std::string>& projections, std::shared_ptr<arrow::Array> boolean_mask){
-    std::vector<std::shared_ptr<arrow::Array>> filtered_arrays;
-    std::shared_ptr<arrow::Schema> schema = table->schema();
-    std::vector<int> schema_drop_fields;
+std::shared_ptr<arrow::Table> Dataframe::apply_filters_projections(const std::shared_ptr<arrow::Table>& table, const std::vector<std::string>& projections, std::vector<std::shared_ptr<arrow::Array>> boolean_masks){
+    
+    std::vector<std::shared_ptr<arrow::Table>> table_chunks;
+    for(size_t j=0; j<boolean_masks.size(); j++){
+        std::vector<std::shared_ptr<arrow::Array>> filtered_arrays;
+        std::shared_ptr<arrow::Schema> schema = table->schema();
+        std::vector<int> schema_drop_fields;
 
-    auto columns = table->columns();
-    for(int i=0; i<columns.size(); i++){
-        if(std::find(projections.begin(),projections.end(),table->field(i)->name())!=projections.end()){
-            auto st = arrow::compute::CallFunction("array_filter", {columns[i]->chunk(0), boolean_mask});
-            std::shared_ptr<arrow::Array> filtered_array = st.ValueOrDie().make_array();
-            filtered_arrays.push_back(filtered_array);
+        auto columns = table->columns();
+        for(int i=0; i<columns.size(); i++){
+            if(std::find(projections.begin(),projections.end(),table->field(i)->name())!=projections.end()){
+                assert(columns[i]->num_chunks()==boolean_masks.size());
+                auto a1 = columns[i];
+                auto a = columns[i]->chunk(j);
+                auto b = boolean_masks[j];
+                auto st = arrow::compute::CallFunction("array_filter", {columns[i]->chunk(j), boolean_masks[j]});
+                std::shared_ptr<arrow::Array> filtered_array = st.ValueOrDie().make_array();
+                filtered_arrays.push_back(filtered_array);
+            }
+            else{
+                schema_drop_fields.push_back(i);
+            }
         }
-        else{
-            schema_drop_fields.push_back(i);
+
+        for(int i=schema_drop_fields.size()-1; i>=0; i--){
+            auto result = schema->RemoveField(schema_drop_fields[i]);
+            if(!result.ok()){
+                std::cout << result.status().ToString() << std::endl;
+            }
+            schema = result.ValueOrDie();
         }
+
+        table_chunks.push_back(arrow::Table::Make(schema, filtered_arrays));
     }
 
-    for(int i=schema_drop_fields.size()-1; i>=0; i--){
-        auto result = schema->RemoveField(schema_drop_fields[i]);
-        if(!result.ok()){
-            std::cout << result.status().ToString() << std::endl;
-        }
-        schema = result.ValueOrDie();
+    // merge tables
+    arrow::Result<std::shared_ptr<arrow::Table>> result = arrow::ConcatenateTables(table_chunks);
+    if(!result.ok()){
+        std::cout << result.status().ToString() << std::endl;
     }
-
-    return arrow::Table::Make(schema, filtered_arrays);
+    return result.ValueOrDie();
 }
 
-arrow::Status Dataframe::compute_filter_mask(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Array>& mask){
+arrow::Status Dataframe::compute_filter_mask(std::shared_ptr<arrow::Table> table, std::vector<std::shared_ptr<arrow::Array>>& masks){
     
-    std::vector<std::shared_ptr<arrow::Array>> boolean_masks;
-    for(auto& filter: _filters){
-        std::shared_ptr<arrow::Array> column_array = table->GetColumnByName(filter.column)->chunk(0); 
-        arrow::Datum boolean_mask_datum;
-        if(filter.is_col){
-            std::shared_ptr<arrow::Array> compare_column_array = table->GetColumnByName(filter.constant_or_column)->chunk(0); 
-            ARROW_ASSIGN_OR_RAISE(boolean_mask_datum,arrow::compute::CallFunction(get_arrow_compute_operator(filter.operator_), {column_array, compare_column_array}));
-        }
-        else{
-            std::shared_ptr<arrow::Scalar> constant;
-            switch(get_col_dataType(filter.column)){
-                case dataType::int64:{
-                    constant = arrow::MakeScalar<int64_t>(std::stoi(filter.constant_or_column));
-                    break;
-                }
-                case dataType::double_:{
-                    constant = arrow::MakeScalar<double>(std::stod(filter.constant_or_column));
-                    break;
-                }
-            }
-            ARROW_ASSIGN_OR_RAISE(boolean_mask_datum,arrow::compute::CallFunction(get_arrow_compute_operator(filter.operator_), {column_array, constant}));
-        }
-        filter.boolean_mask = std::move(boolean_mask_datum).make_array();
-        boolean_masks.push_back(filter.boolean_mask);
+    std::cout << table->num_rows() << std::endl;
 
-        auto st = arrow::compute::CallFunction("array_filter", {filter.boolean_mask, filter.boolean_mask});
-        filter.true_count = st.ValueOrDie().make_array()->length();
-        filter.false_count = filter.boolean_mask->length() - filter.true_count;
+    std::vector<std::vector<std::shared_ptr<arrow::Array>>> chunks_filters_boolean_masks; // for each chunk, all filter masks 
+    for(size_t i=0; i<table->column(0)->num_chunks(); i++){
+        std::vector<std::shared_ptr<arrow::Array>> filters_boolean_masks;
+        for(auto& filter: _filters){
+            std::shared_ptr<arrow::Array> column_array = table->GetColumnByName(filter.column)->chunk(i); 
+            arrow::Datum boolean_mask_datum;
+            if(filter.is_col){
+                std::shared_ptr<arrow::Array> compare_column_array = table->GetColumnByName(filter.constant_or_column)->chunk(i); 
+                ARROW_ASSIGN_OR_RAISE(boolean_mask_datum,arrow::compute::CallFunction(get_arrow_compute_operator(filter.operator_), {column_array, compare_column_array}));
+            }
+            else{
+                std::shared_ptr<arrow::Scalar> constant;
+                switch(get_col_dataType(filter.column)){
+                    case dataType::int64:{
+                        constant = arrow::MakeScalar<int64_t>(std::stoi(filter.constant_or_column));
+                        break;
+                    }
+                    case dataType::double_:{
+                        constant = arrow::MakeScalar<double>(std::stod(filter.constant_or_column));
+                        break;
+                    }
+                }
+                ARROW_ASSIGN_OR_RAISE(boolean_mask_datum,arrow::compute::CallFunction(get_arrow_compute_operator(filter.operator_), {column_array, constant}));
+            }
+            filter.boolean_mask = std::move(boolean_mask_datum).make_array();
+            filters_boolean_masks.push_back(filter.boolean_mask);
+
+            // filter metadata will only be written to sdc metadata, if currently using primary index
+            auto st = arrow::compute::CallFunction("array_filter", {filter.boolean_mask, filter.boolean_mask});
+            filter.true_count = st.ValueOrDie().make_array()->length();
+            filter.false_count = filter.boolean_mask->length() - filter.true_count;
+        }
+        chunks_filters_boolean_masks.push_back(filters_boolean_masks);
     }
 
-    // combine masks
-    mask = boolean_masks[0];
+    // resize to num_chunks
+    masks.resize(chunks_filters_boolean_masks.size());
+
     arrow::Datum boolean_mask_datum;
-    for(size_t i=1; i<boolean_masks.size(); i++){
-        ARROW_ASSIGN_OR_RAISE(boolean_mask_datum,arrow::compute::CallFunction("and", {mask, boolean_masks[i]}));
-        mask = std::move(boolean_mask_datum).make_array();
+    // loop through chunks
+    for(size_t i=0; i<chunks_filters_boolean_masks.size(); i++){
+        masks[i] = chunks_filters_boolean_masks[i][0];
+        // loop through mask for each filter, combine filters
+        for(size_t j=1; j<chunks_filters_boolean_masks[i].size(); j++){
+        // for(const auto& filter_boolean_mask: chunks_filters_boolean_masks[i]){
+            ARROW_ASSIGN_OR_RAISE(boolean_mask_datum,arrow::compute::CallFunction("and", {masks[i], chunks_filters_boolean_masks[i][j]}));
+            masks[i] = std::move(boolean_mask_datum).make_array();
+        }
     }
 
     return arrow::Status::OK();
@@ -560,7 +589,7 @@ void Dataframe::optimize(){
         
         dataBlock["numRows"] = leafNode->num_tuples;
         dataBlock["filePath"] = file_path;
-        std::shared_ptr<arrow::Table> filtered_table = apply_filters_projections(table, qd.columns, leafNode->tuples);
+        std::shared_ptr<arrow::Table> filtered_table = apply_filters_projections(table, qd.columns, {leafNode->tuples});
         assert(write_parquet_file(filtered_table, file_path).ok());
         qd_index["dataBlocks"].push_back(dataBlock);
     }

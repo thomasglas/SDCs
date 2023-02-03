@@ -46,7 +46,7 @@
     },
     {
       "filePath": "../data/NYCtaxi/qd_index/data_block_2.parquet",
-      "numRows": 1131315,
+      "numRows": 276784,
       "ranges": [
         {
           "colDataType": "int",
@@ -55,36 +55,6 @@
           "maxInclusive": true,
           "min": "2",
           "minInclusive": true
-        },
-        {
-          "colDataType": "double",
-          "column": "fare_amount",
-          "max": "10",
-          "maxInclusive": true,
-          "min": "",
-          "minInclusive": true
-        }
-      ]
-    },
-    {
-      "filePath": "../data/NYCtaxi/qd_index/data_block_3.parquet",
-      "numRows": 1029845,
-      "ranges": [
-        {
-          "colDataType": "int",
-          "column": "VendorID",
-          "max": "",
-          "maxInclusive": true,
-          "min": "2",
-          "minInclusive": true
-        },
-        {
-          "colDataType": "double",
-          "column": "fare_amount",
-          "max": "",
-          "maxInclusive": true,
-          "min": "10",
-          "minInclusive": false
         },
         {
           "colDataType": "double",
@@ -97,8 +67,8 @@
       ]
     },
     {
-      "filePath": "../data/NYCtaxi/qd_index/data_block_4.parquet",
-      "numRows": 102579,
+      "filePath": "../data/NYCtaxi/qd_index/data_block_3.parquet",
+      "numRows": 858927,
       "ranges": [
         {
           "colDataType": "int",
@@ -110,11 +80,33 @@
         },
         {
           "colDataType": "double",
+          "column": "tip_amount",
+          "max": "",
+          "maxInclusive": true,
+          "min": "10",
+          "minInclusive": true
+        },
+        {
+          "colDataType": "double",
           "column": "fare_amount",
           "max": "",
           "maxInclusive": true,
           "min": "10",
           "minInclusive": false
+        }
+      ]
+    },
+    {
+      "filePath": "../data/NYCtaxi/qd_index/data_block_4.parquet",
+      "numRows": 1128028,
+      "ranges": [
+        {
+          "colDataType": "int",
+          "column": "VendorID",
+          "max": "",
+          "maxInclusive": true,
+          "min": "2",
+          "minInclusive": true
         },
         {
           "colDataType": "double",
@@ -122,6 +114,14 @@
           "max": "",
           "maxInclusive": true,
           "min": "10",
+          "minInclusive": true
+        },
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "10",
+          "maxInclusive": true,
+          "min": "",
           "minInclusive": true
         }
       ]

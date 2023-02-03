@@ -47,6 +47,7 @@ std::shared_ptr<arrow::Array> QDTree::get_filter_mask(json& query_filter){
 
 bool QDTree::make_cut(std::shared_ptr<QDNode>& node, std::vector<SDC::Filter> &filters, json& workload){
     if(node->num_tuples<2*leaf_min_size){
+        node->type = QDNode::nodeType::leafNode;
         return false;
     }
 

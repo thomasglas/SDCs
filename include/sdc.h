@@ -51,10 +51,10 @@ class Dataframe {
 
         // arrow & parquet
         std::shared_ptr<arrow::Table> load_parquet(std::string file_path);
-        arrow::Status compute_filter_mask(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Array>& mask);
+        arrow::Status compute_filter_mask(std::shared_ptr<arrow::Table> table, std::vector<std::shared_ptr<arrow::Array>>& masks);
         dataType get_col_dataType(std::string column);
         std::string get_arrow_compute_operator(std::string filter_operator);
-        std::shared_ptr<arrow::Table> apply_filters_projections(const std::shared_ptr<arrow::Table>& table, const std::vector<std::string>& projections, std::shared_ptr<arrow::Array> boolean_mask);
+        std::shared_ptr<arrow::Table> apply_filters_projections(const std::shared_ptr<arrow::Table>& table, const std::vector<std::string>& projections, std::vector<std::shared_ptr<arrow::Array>> boolean_masks);
         arrow::Status write_parquet_file(const std::shared_ptr<arrow::Table>& table, const std::string& file_path);
 };
 
