@@ -5,6 +5,7 @@
 #include <iostream>
 #include <bitset>
 #include <filesystem>
+#include <string>
 #include <algorithm>
 
 namespace SDC{
@@ -18,6 +19,8 @@ void Dataframe::head(int rows){
     
     // load data blocks from most suitable index
     std::shared_ptr<arrow::Table> table = load_data(index);
+    
+    std::cout << "total rows: " << table->num_rows() << std::endl;
 
     // apply filters
     std::shared_ptr<arrow::Array> filter_mask;
@@ -28,9 +31,10 @@ void Dataframe::head(int rows){
     std::shared_ptr<arrow::Table> filtered_table = apply_filters_projections(table, _projections, filter_mask);
 
     // print
+    std::cout << "filtered_rows: " << filtered_table->num_rows() << std::endl;
     PARQUET_THROW_NOT_OK(arrow::PrettyPrint(*(filtered_table->Slice(0,rows)), 4, &std::cout));
 
-    // update metadata (& upload boolean mask)
+    // update metadata (& upload boolean mask, if primary key was used)
     update_metadata();
 }
 
@@ -123,7 +127,7 @@ arrow::Status Dataframe::compute_filter_mask(std::shared_ptr<arrow::Table> table
 
 std::string Dataframe::get_arrow_compute_operator(std::string filter_operator){
     std::string result;
-    if(filter_operator=="="){
+    if(filter_operator=="=="){
         result = "equal";
     }
     else if(filter_operator=="<"){
@@ -160,6 +164,7 @@ void Dataframe::filter(std::string column, std::string operator_, std::string co
 json Dataframe::load_index(bool get_primary){
     json indexes = _metadata["indexes"];
     if(indexes.size()==1 || get_primary){
+        using_primary_index = true;
         for(auto index: indexes){
             if(index["type"]=="primary"){
                 std::ifstream f(index["filePath"]);
@@ -170,12 +175,47 @@ json Dataframe::load_index(bool get_primary){
         assert(1==2);
     }
     else{
-        // find most suitable index (has columns, built on filters)
-        for(auto& idx: indexes){
-            // todo
+        // idea: find most suitable index (has columns, built on filters)
+
+        // for now: use qd_tree index
+        json primary_index;
+        json qd_tree;
+        for(auto& index: indexes){
+            if(index["type"]=="primary"){
+                primary_index = index;
+            }
+            else if(index["type"]=="qdTree"){
+                qd_tree = index;
+            }
         }
-        std::ifstream f(indexes[0]["filePath"]);
-        return json::parse(f);
+
+        // check if qdTree has all required columns
+        bool has_all_columns = true;
+        for(const auto& proj: _projections){
+            bool found = false;
+            for(const auto& col: qd_tree["columns"]){
+                if(proj==col["name"]){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                has_all_columns = false;
+                break;
+            }
+        }
+        // use qd_tree
+        if(has_all_columns){
+            using_primary_index = false;
+            std::ifstream f(qd_tree["filePath"]);
+            return json::parse(f);
+        }
+        // use primary index
+        else{
+            using_primary_index = true;
+            std::ifstream f(primary_index["filePath"]);
+            return json::parse(f);
+        }
     }
 }
 
@@ -185,7 +225,68 @@ std::shared_ptr<arrow::Table> Dataframe::load_data(json index){
     // load all tables
     std::vector<std::shared_ptr<arrow::Table>> data_blocks;
     for(auto& block: index["dataBlocks"]){
-        data_blocks.push_back(load_parquet(block["filePath"]));
+        // check: does data block contain data which the query needs?
+        bool is_relevant = true;
+        for(const auto& range: block["ranges"]){
+            // find filters on same column
+            for(const auto& filter: _filters){
+                if(range["column"]==filter.column && !filter.is_col){
+                    // check if data block and filter have overlap
+                    switch(string_to_dataType(range["colDataType"])){
+
+                        case dataType::int64:{
+                            if(filter.operator_=="<" && range["min"]!="" && std::stoi(range["min"].get<std::string>()) >= std::stoi(filter.constant_or_column)){
+                                is_relevant = false;
+                            }
+                            else if(filter.operator_=="<=" && range["min"]!="" && std::stoi(range["min"].get<std::string>()) > std::stoi(filter.constant_or_column)){
+                                is_relevant = false;
+                            }
+                            else if(filter.operator_==">" && range["max"]!="" && std::stoi(range["max"].get<std::string>()) <= std::stoi(filter.constant_or_column)){
+                                is_relevant = false;
+                            }
+                            else if(filter.operator_==">=" && range["max"]!="" && std::stoi(range["max"].get<std::string>()) < std::stoi(filter.constant_or_column)){
+                                is_relevant = false;
+                            }
+                            else if(filter.operator_=="==" && ((range["max"]!="" && std::stoi(range["max"].get<std::string>()) < std::stoi(filter.constant_or_column)) || (range["min"]!="" && std::stoi(range["min"].get<std::string>()) > std::stoi(filter.constant_or_column)))){
+                                is_relevant = false;
+                            }
+                            break;
+                        }
+                        case dataType::double_:{
+                            if(filter.operator_=="<" && range["min"]!="" && std::stod(range["min"].get<std::string>()) >= std::stod(filter.constant_or_column)){
+                                is_relevant = false;
+                            }
+                            else if(filter.operator_=="<=" && range["min"]!="" && std::stod(range["min"].get<std::string>()) > std::stod(filter.constant_or_column)){
+                                is_relevant = false;
+                            }
+                            else if(filter.operator_==">" && range["max"]!="" && std::stod(range["max"].get<std::string>()) <= std::stod(filter.constant_or_column)){
+                                is_relevant = false;
+                            }
+                            else if(filter.operator_==">=" && range["max"]!="" && std::stod(range["max"].get<std::string>()) < std::stod(filter.constant_or_column)){
+                                is_relevant = false;
+                            }
+                            else if(filter.operator_=="==" && ((range["max"]!="" && std::stod(range["max"].get<std::string>()) < std::stod(filter.constant_or_column)) || (range["min"]!="" && std::stod(range["min"].get<std::string>()) > std::stod(filter.constant_or_column)))){
+                                is_relevant = false;
+                            }
+                            break;
+                        }
+                        default:{
+                            // should not reach this
+                            assert(1==2);
+                        }
+                    }
+                }
+                if(!is_relevant){
+                    break;
+                }
+            }
+            if(!is_relevant){
+                break;
+            }
+        }
+        if(is_relevant){
+            data_blocks.push_back(load_parquet(block["filePath"]));
+        }
     }
 
     // merge tables
@@ -286,10 +387,12 @@ void Dataframe::update_metadata(){
             metadata_filter["isCol"] = filter.is_col;
             metadata_filter["trueCount"] = filter.true_count;
             metadata_filter["falseCount"] = filter.false_count;
-            // write arrow boolean array to disk
-            std::string boolean_mask_file = data_directory+"/boolean_filter_"+filter.column;
-            write_boolean_filter(filter, boolean_mask_file); 
-            metadata_filter["booleanMask"] = boolean_mask_file;
+            if(using_primary_index){
+                // write arrow boolean array to disk
+                std::string boolean_mask_file = data_directory+"/boolean_filter_"+filter.column;
+                write_boolean_filter(filter, boolean_mask_file); 
+                metadata_filter["booleanMask"] = boolean_mask_file;
+            }
             metadata_filters.push_back(metadata_filter);
         }
 
@@ -398,6 +501,17 @@ void Dataframe::optimize(){
         // boolean_masks for filters used -> 
     QDTree qd = QDTree(workload_filters, workload_projections, _metadata);
 
+    // make sure all tuples are included
+    std::shared_ptr<arrow::Array> tuples_included = qd.leafNodes[0]->tuples;
+    for(size_t i=1; i<qd.leafNodes.size(); i++){
+        auto st = arrow::compute::CallFunction("or", {tuples_included, qd.leafNodes[i]->tuples});
+        tuples_included = st.ValueOrDie().make_array();
+    }
+    auto st = arrow::compute::CallFunction("invert", {tuples_included});
+    std::shared_ptr<arrow::Array> tuples_not_included = st.ValueOrDie().make_array();
+    st = arrow::compute::CallFunction("array_filter", {tuples_not_included, tuples_not_included});
+    assert(st.ValueOrDie().make_array()->length()==0);
+
     // get data from primary index
     json primary_index = load_index(true);
     std::shared_ptr<arrow::Table> table = load_data(primary_index);
@@ -429,7 +543,7 @@ void Dataframe::optimize(){
     // write new data blocks, using qd tree filters on primary data
     int block_ids = 0;
     for(auto leafNode: qd.leafNodes){
-        std::string file_path = data_directory+"/qd_index/data_block_"+std::to_string(block_ids++);
+        std::string file_path = data_directory+"/qd_index/data_block_"+std::to_string(block_ids++)+".parquet";
         json dataBlock;
 
         // add ranges
@@ -444,6 +558,7 @@ void Dataframe::optimize(){
             dataBlock["ranges"].push_back(json_range);
         }
         
+        dataBlock["numRows"] = leafNode->num_tuples;
         dataBlock["filePath"] = file_path;
         std::shared_ptr<arrow::Table> filtered_table = apply_filters_projections(table, qd.columns, leafNode->tuples);
         assert(write_parquet_file(filtered_table, file_path).ok());

@@ -46,14 +46,19 @@
           "filePath": "../data/NYCtaxi/qd_index.json",
           "filtersUsed": [
             {
+              "column": "VendorID",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
               "column": "fare_amount",
               "constant": "10",
               "operator": ">"
             },
             {
               "column": "tip_amount",
-              "constant": "5",
-              "operator": ">"
+              "constant": "10",
+              "operator": "<"
             }
           ],
           "type": "qdTree"
@@ -64,8 +69,17 @@
       "num_rows": 3174394,
       "workload": [
         {
-          "executionCount": 49,
+          "executionCount": 2,
           "filters": [
+            {
+              "booleanMask": "../data/NYCtaxi/boolean_filter_VendorID",
+              "column": "VendorID",
+              "constantOrColumn": "2",
+              "falseCount": 2263739,
+              "isCol": false,
+              "operator": "<",
+              "trueCount": 910655
+            },
             {
               "booleanMask": "../data/NYCtaxi/boolean_filter_fare_amount",
               "column": "fare_amount",
@@ -74,50 +88,6 @@
               "isCol": false,
               "operator": ">",
               "trueCount": 1566870
-            },
-            {
-              "booleanMask": "../data/NYCtaxi/boolean_filter_tip_amount",
-              "column": "tip_amount",
-              "constantOrColumn": "5",
-              "falseCount": 2809979,
-              "isCol": false,
-              "operator": ">",
-              "trueCount": 364415
-            }
-          ],
-          "projections": [
-            {
-              "name": "VendorID"
-            },
-            {
-              "name": "fare_amount"
-            },
-            {
-              "name": "tip_amount"
-            }
-          ],
-          "queryID": "NYCtaxifare_amount>10tip_amount>5VendorIDfare_amounttip_amount"
-        },
-        {
-          "executionCount": 1,
-          "filters": [
-            {
-              "booleanMask": "../data/NYCtaxi/boolean_filter_fare_amount",
-              "column": "fare_amount",
-              "constantOrColumn": "10",
-              "falseCount": 1607524,
-              "isCol": false,
-              "operator": ">",
-              "trueCount": 1566870
-            },
-            {
-              "booleanMask": "../data/NYCtaxi/boolean_filter_tip_amount",
-              "column": "tip_amount",
-              "constantOrColumn": "5",
-              "falseCount": 2809979,
-              "isCol": false,
-              "operator": ">",
-              "trueCount": 364415
             }
           ],
           "projections": [
@@ -134,7 +104,36 @@
               "name": "payment_type"
             }
           ],
-          "queryID": "NYCtaxifare_amount>10tip_amount>5VendorIDfare_amounttip_amountpayment_type"
+          "queryID": "NYCtaxiVendorID<2fare_amount>10VendorIDfare_amounttip_amountpayment_type"
+        },
+        {
+          "executionCount": 2,
+          "filters": [
+            {
+              "booleanMask": "../data/NYCtaxi/boolean_filter_tip_amount",
+              "column": "tip_amount",
+              "constantOrColumn": "10",
+              "falseCount": 136183,
+              "isCol": false,
+              "operator": "<",
+              "trueCount": 3038211
+            }
+          ],
+          "projections": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "queryID": "NYCtaxitip_amount<10VendorIDfare_amounttip_amountpayment_type"
         }
       ]
     }

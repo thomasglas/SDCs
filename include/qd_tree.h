@@ -57,9 +57,6 @@ class QDNode {
         Filter filter;
         std::shared_ptr<QDNode> true_child;
         std::shared_ptr<QDNode> false_child;
-        
-        // leaf node
-        std::string filePath;
 
         QDNode()
         :type(nodeType::base),tuples(nullptr),parent_node(nullptr){};

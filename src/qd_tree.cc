@@ -82,14 +82,19 @@ bool QDTree::make_cut(std::shared_ptr<QDNode>& node, std::vector<SDC::Filter> &f
             // how many tuples left after filter
             st = arrow::compute::CallFunction("array_filter", {true_filtered_node_tuples, true_filtered_node_tuples});
             count_tuples_true = st.ValueOrDie().make_array()->length();
-            count_tuples_false = node->num_tuples - count_tuples_true;
-
+            // count_tuples_false = node->num_tuples - count_tuples_true;
             
             st = arrow::compute::CallFunction("invert", {filters[i].boolean_mask});
             auto inverted_filter = st.ValueOrDie().make_array();
             st = arrow::compute::CallFunction("and", {node->tuples, inverted_filter});
             false_filtered_node_tuples = st.ValueOrDie().make_array();
+
+            // how many tuples left after inverse filter
+            st = arrow::compute::CallFunction("array_filter", {false_filtered_node_tuples, false_filtered_node_tuples});
+            count_tuples_false = st.ValueOrDie().make_array()->length();
         }
+
+        assert(node->num_tuples==count_tuples_true+count_tuples_false);
 
         // minimum size for data blocks
         if(count_tuples_true<leaf_min_size || count_tuples_false<leaf_min_size){
@@ -322,9 +327,9 @@ bool QDTree::make_cut(std::shared_ptr<QDNode>& node, std::vector<SDC::Filter> &f
             max_tuples_discarded = tuples_discarded;
             idx_argmax_tuples_cut = i;
             argmax_true_filtered_node_tuples = true_filtered_node_tuples;
+            argmax_false_filtered_node_tuples = false_filtered_node_tuples;
             argmax_count_tuples_true = count_tuples_true;
             argmax_count_tuples_false = count_tuples_false;
-            argmax_false_filtered_node_tuples = false_filtered_node_tuples;
         }
     }
     if(idx_argmax_tuples_cut>-1){
@@ -354,7 +359,6 @@ bool QDTree::make_cut(std::shared_ptr<QDNode>& node, std::vector<SDC::Filter> &f
     }
     else{
         // turn node into leaf node
-        node->filePath = "test.parquet";
         node->type = QDNode::nodeType::leafNode;
         return false;
     }

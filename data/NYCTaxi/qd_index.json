@@ -1,26 +1,14 @@
 {
   "dataBlocks": [
     {
-      "filePath": "../data/NYCtaxi/qd_index/data_block_0",
+      "filePath": "../data/NYCtaxi/qd_index/data_block_0.parquet",
+      "numRows": 434446,
       "ranges": [
         {
-          "colDataType": "double",
-          "column": "tip_amount",
-          "max": "",
-          "maxInclusive": true,
-          "min": "5",
-          "minInclusive": false
-        }
-      ]
-    },
-    {
-      "filePath": "../data/NYCtaxi/qd_index/data_block_1",
-      "ranges": [
-        {
-          "colDataType": "double",
-          "column": "tip_amount",
-          "max": "5",
-          "maxInclusive": true,
+          "colDataType": "int",
+          "column": "VendorID",
+          "max": "2",
+          "maxInclusive": false,
           "min": "",
           "minInclusive": true
         },
@@ -35,13 +23,14 @@
       ]
     },
     {
-      "filePath": "../data/NYCtaxi/qd_index/data_block_2",
+      "filePath": "../data/NYCtaxi/qd_index/data_block_1.parquet",
+      "numRows": 476209,
       "ranges": [
         {
-          "colDataType": "double",
-          "column": "tip_amount",
-          "max": "5",
-          "maxInclusive": true,
+          "colDataType": "int",
+          "column": "VendorID",
+          "max": "2",
+          "maxInclusive": false,
           "min": "",
           "minInclusive": true
         },
@@ -51,6 +40,88 @@
           "max": "10",
           "maxInclusive": true,
           "min": "",
+          "minInclusive": true
+        }
+      ]
+    },
+    {
+      "filePath": "../data/NYCtaxi/qd_index/data_block_2.parquet",
+      "numRows": 1131315,
+      "ranges": [
+        {
+          "colDataType": "int",
+          "column": "VendorID",
+          "max": "",
+          "maxInclusive": true,
+          "min": "2",
+          "minInclusive": true
+        },
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "10",
+          "maxInclusive": true,
+          "min": "",
+          "minInclusive": true
+        }
+      ]
+    },
+    {
+      "filePath": "../data/NYCtaxi/qd_index/data_block_3.parquet",
+      "numRows": 1029845,
+      "ranges": [
+        {
+          "colDataType": "int",
+          "column": "VendorID",
+          "max": "",
+          "maxInclusive": true,
+          "min": "2",
+          "minInclusive": true
+        },
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "",
+          "maxInclusive": true,
+          "min": "10",
+          "minInclusive": false
+        },
+        {
+          "colDataType": "double",
+          "column": "tip_amount",
+          "max": "10",
+          "maxInclusive": false,
+          "min": "",
+          "minInclusive": true
+        }
+      ]
+    },
+    {
+      "filePath": "../data/NYCtaxi/qd_index/data_block_4.parquet",
+      "numRows": 102579,
+      "ranges": [
+        {
+          "colDataType": "int",
+          "column": "VendorID",
+          "max": "",
+          "maxInclusive": true,
+          "min": "2",
+          "minInclusive": true
+        },
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "",
+          "maxInclusive": true,
+          "min": "10",
+          "minInclusive": false
+        },
+        {
+          "colDataType": "double",
+          "column": "tip_amount",
+          "max": "",
+          "maxInclusive": true,
+          "min": "10",
           "minInclusive": true
         }
       ]

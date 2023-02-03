@@ -40,6 +40,7 @@ class Dataframe {
         std::vector<std::string> _projections;
         std::vector<std::string> _required_columns;
         json _metadata;
+        bool using_primary_index;
         void update_metadata();
         json load_metadata();
         json load_index(bool get_primary=false);
