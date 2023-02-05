@@ -24,7 +24,7 @@ QDTree::QDTree(std::vector<Filter>& filters, std::vector<std::string>& projectio
             nodeQueue.push(base_node->false_child);
         }
         else{
-            // turn node into leaf node
+            // noded has turned into leaf node
             leafNodes.push_back(base_node);
         }
         nodeQueue.pop();
@@ -207,6 +207,9 @@ bool QDTree::make_cut(std::shared_ptr<QDNode>& node, std::vector<SDC::Filter> &f
                                 }
                                 else if(query_filter["operator"]=="!=" && query_cut==filter_cut){
                                     tuples_discarded += count_tuples_true;
+                                }
+                                else if(query_filter["operator"]=="==" && query_cut==filter_cut){
+                                    tuples_discarded += count_tuples_false;
                                 }
                                 else if(query_filter["operator"]=="==" && query_cut!=filter_cut){
                                     tuples_discarded += count_tuples_true;

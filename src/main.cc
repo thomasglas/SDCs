@@ -66,28 +66,44 @@ void reset_sdc(){
 void run_workload(){
   auto begin = std::chrono::high_resolution_clock::now();
 
-  {
+  { // 575989
     SDC::Dataframe table("NYCtaxi");
-    table.filter("VendorID", "<", "2");
-    table.filter("fare_amount", ">", "10");
-    // table.filter("tip_amount", "<", "10");
+    table.filter("fare_amount", ">", "20");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
     table.head(5);
   }
-  {
+  { // 120482
     SDC::Dataframe table("NYCtaxi");
-    table.filter("tip_amount", "<", "10");
-    table.filter("tip_amount", ">", "5");
-    // // table.filter("tip_amount", ">=", "fare_amount", true);
+    table.filter("tip_amount", ">", "10");
+    // table.filter("tip_amount", ">=", "fare_amount", true);
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
     table.head(5);
   }
-  // {
-  //   SDC::Dataframe table("NYCtaxi");
-  //   table.filter("VendorID", "==", "3");
-  //   table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
-  //   table.head(5);
-  // }
+  { // 117956
+    SDC::Dataframe table("NYCtaxi");
+    table.filter("fare_amount", ">", "20");
+    table.filter("tip_amount", ">", "10");
+    table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
+    table.head(5);
+  }
+  { // 1379502
+    SDC::Dataframe table("NYCtaxi");
+    table.filter("tip_amount", "<", "2");
+    table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
+    table.head(5);
+  }
+  { // 213742
+    SDC::Dataframe table("NYCtaxi");
+    table.filter("fare_amount", "<", "5");
+    table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
+    table.head(5);
+  }
+  { // 910655
+    SDC::Dataframe table("NYCtaxi");
+    table.filter("VendorID", "<=", "1");
+    table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
+    table.head(5);
+  }
 
   auto end = std::chrono::high_resolution_clock::now();
   auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);

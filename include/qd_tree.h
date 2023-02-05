@@ -80,7 +80,7 @@ class QDTree {
         // root node of QDTree
         std::shared_ptr<QDNode> root;
 
-        size_t leaf_min_size = 100000;
+        size_t leaf_min_size = 1000;
 
         std::vector<QDNodeRange> add_range(std::vector<QDNodeRange> ranges, const Filter& filter, bool true_false_child);
 

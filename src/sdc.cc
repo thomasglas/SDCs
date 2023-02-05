@@ -264,37 +264,59 @@ std::shared_ptr<arrow::Table> Dataframe::load_data(json index){
                     switch(string_to_dataType(range["colDataType"])){
 
                         case dataType::int64:{
-                            if(filter.operator_=="<" && range["min"]!="" && std::stoi(range["min"].get<std::string>()) >= std::stoi(filter.constant_or_column)){
+                            if(filter.operator_=="<" && range["min"]!=""
+                                && (std::stoi(range["min"].get<std::string>()) >= std::stoi(filter.constant_or_column)
+                                || (std::stoi(range["min"].get<std::string>()) > std::stoi(filter.constant_or_column)-1 && !range["minInclusive"]))){
+                                is_relevant = false;
+
+                            }
+                            else if(filter.operator_=="<=" && range["min"]!="" 
+                                && (std::stoi(range["min"].get<std::string>()) > std::stoi(filter.constant_or_column)
+                                || (std::stoi(range["min"].get<std::string>()) >= std::stoi(filter.constant_or_column) && !range["minInclusive"]))){
                                 is_relevant = false;
                             }
-                            else if(filter.operator_=="<=" && range["min"]!="" && std::stoi(range["min"].get<std::string>()) > std::stoi(filter.constant_or_column)){
+                            else if(filter.operator_==">" && range["max"]!="" 
+                                && (std::stoi(range["max"].get<std::string>()) <= std::stoi(filter.constant_or_column)
+                                || (std::stoi(range["max"].get<std::string>()) < std::stoi(filter.constant_or_column)+1 && !range["maxInclusive"]))){
                                 is_relevant = false;
                             }
-                            else if(filter.operator_==">" && range["max"]!="" && std::stoi(range["max"].get<std::string>()) <= std::stoi(filter.constant_or_column)){
+                            else if(filter.operator_==">=" && range["max"]!="" 
+                                && (std::stoi(range["max"].get<std::string>()) < std::stoi(filter.constant_or_column)
+                                || (std::stoi(range["max"].get<std::string>()) <= std::stoi(filter.constant_or_column) && !range["maxInclusive"]))){
                                 is_relevant = false;
                             }
-                            else if(filter.operator_==">=" && range["max"]!="" && std::stoi(range["max"].get<std::string>()) < std::stoi(filter.constant_or_column)){
-                                is_relevant = false;
-                            }
-                            else if(filter.operator_=="==" && ((range["max"]!="" && std::stoi(range["max"].get<std::string>()) < std::stoi(filter.constant_or_column)) || (range["min"]!="" && std::stoi(range["min"].get<std::string>()) > std::stoi(filter.constant_or_column)))){
+                            else if(filter.operator_=="==" && 
+                                ((range["max"]!="" && std::stoi(range["max"].get<std::string>()) < std::stoi(filter.constant_or_column))
+                                || (range["max"]!="" && std::stoi(range["max"].get<std::string>()) <= std::stoi(filter.constant_or_column) && !range["maxInclusive"])
+                                || (range["min"]!="" && std::stoi(range["min"].get<std::string>()) > std::stoi(filter.constant_or_column))
+                                || (range["min"]!="" && std::stoi(range["min"].get<std::string>()) >= std::stoi(filter.constant_or_column) && !range["minInclusive"]))){
                                 is_relevant = false;
                             }
                             break;
                         }
                         case dataType::double_:{
-                            if(filter.operator_=="<" && range["min"]!="" && std::stod(range["min"].get<std::string>()) >= std::stod(filter.constant_or_column)){
+                            if(filter.operator_=="<" && range["min"]!="" 
+                                && std::stod(range["min"].get<std::string>()) >= std::stod(filter.constant_or_column)){
                                 is_relevant = false;
                             }
-                            else if(filter.operator_=="<=" && range["min"]!="" && std::stod(range["min"].get<std::string>()) > std::stod(filter.constant_or_column)){
+                            else if(filter.operator_=="<=" && range["min"]!="" 
+                                && (std::stod(range["min"].get<std::string>()) > std::stod(filter.constant_or_column)
+                                || (std::stod(range["min"].get<std::string>()) >= std::stod(filter.constant_or_column) && !range["minInclusive"]))){
                                 is_relevant = false;
                             }
                             else if(filter.operator_==">" && range["max"]!="" && std::stod(range["max"].get<std::string>()) <= std::stod(filter.constant_or_column)){
                                 is_relevant = false;
                             }
-                            else if(filter.operator_==">=" && range["max"]!="" && std::stod(range["max"].get<std::string>()) < std::stod(filter.constant_or_column)){
+                            else if(filter.operator_==">=" && range["max"]!="" 
+                                && (std::stod(range["max"].get<std::string>()) < std::stod(filter.constant_or_column)
+                                || (std::stod(range["max"].get<std::string>()) <= std::stod(filter.constant_or_column) && !range["maxInclusive"]))){
                                 is_relevant = false;
                             }
-                            else if(filter.operator_=="==" && ((range["max"]!="" && std::stod(range["max"].get<std::string>()) < std::stod(filter.constant_or_column)) || (range["min"]!="" && std::stod(range["min"].get<std::string>()) > std::stod(filter.constant_or_column)))){
+                            else if(filter.operator_=="==" 
+                                && ((range["max"]!="" && std::stod(range["max"].get<std::string>()) < std::stod(filter.constant_or_column)) 
+                                || (range["max"]!="" && std::stod(range["max"].get<std::string>()) <= std::stod(filter.constant_or_column) && !range["maxInclusive"]) 
+                                || (range["min"]!="" && std::stod(range["min"].get<std::string>()) > std::stod(filter.constant_or_column))
+                                || (range["min"]!="" && std::stod(range["min"].get<std::string>()) >= std::stod(filter.constant_or_column) && !range["minInclusive"]))){
                                 is_relevant = false;
                             }
                             break;
@@ -418,7 +440,7 @@ void Dataframe::update_metadata(){
             metadata_filter["falseCount"] = filter.false_count;
             if(using_primary_index){
                 // write arrow boolean array to disk
-                std::string boolean_mask_file = data_directory+"/boolean_filter_"+filter.column;
+                std::string boolean_mask_file = data_directory+"/boolean_filter_"+filter.column+filter.operator_+filter.constant_or_column;
                 write_boolean_filter(filter, boolean_mask_file); 
                 metadata_filter["booleanMask"] = boolean_mask_file;
             }
