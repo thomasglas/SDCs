@@ -27,6 +27,9 @@ class Filter{
         bool operator==(const Filter& rhs){
             return column==rhs.column && operator_==rhs.operator_ && type==rhs.type && is_col==rhs.is_col && constant_or_column==rhs.constant_or_column;
         }
+        bool operator<(const Filter& rhs){
+            return column==rhs.column && is_col==rhs.is_col && is_col==rhs.is_col && rhs.constant_or_column<constant_or_column;
+        }
 };
 
 }

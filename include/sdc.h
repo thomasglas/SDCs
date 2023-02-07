@@ -16,6 +16,7 @@
 using json = nlohmann::json;
 
 #include "qd_tree.h"
+#include "col_partition.h"
 #include "filter.h"
 #include "types.h"
 
@@ -28,7 +29,7 @@ class Dataframe {
         {
             data_directory = "../data/"+_table_name;
         };
-        void head(int rows=0);
+        void head(int use_index=1, int rows=0);
         void filter(std::string column, std::string operator_, std::string constant, bool is_col=false);
         void projection(std::vector<std::string> projections);
         void optimize();
@@ -43,11 +44,16 @@ class Dataframe {
         bool using_primary_index;
         void update_metadata();
         json load_metadata();
-        json load_index(bool get_primary=false);
+        json load_index(int use_index);
         std::string get_query_id();
         void write_boolean_filter(Filter& filter, const std::string& filepath);
         std::shared_ptr<arrow::Array> read_boolean_filter(const std::string& filepath);
         std::shared_ptr<arrow::Table> load_data(json index);
+        void remove_index(std::string index_type);
+        json qdTree_metadata_file(QDTree qd, std::shared_ptr<arrow::Table> table);
+        json metadata_qdTree_index(QDTree qd);
+        json colPartition_metadata_file(ColPartition cp, std::shared_ptr<arrow::Table> table);
+        json metadata_columnPartition_index(ColPartition cp);
 
         // arrow & parquet
         std::shared_ptr<arrow::Table> load_parquet(std::string file_path);

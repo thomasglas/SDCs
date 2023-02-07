@@ -43,6 +43,456 @@
               "name": "payment_type"
             }
           ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
+          "filePath": "../data/NYCtaxi/cp_index.json",
+          "filtersUsed": [
+            {
+              "column": "fare_amount",
+              "constant": "20",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "10",
+              "operator": ">"
+            },
+            {
+              "column": "tip_amount",
+              "constant": "2",
+              "operator": "<"
+            },
+            {
+              "column": "fare_amount",
+              "constant": "5",
+              "operator": "<"
+            },
+            {
+              "column": "VendorID",
+              "constant": "1",
+              "operator": "<="
+            }
+          ],
+          "type": "columnPartition"
+        },
+        {
+          "columns": [
+            {
+              "name": "VendorID"
+            },
+            {
+              "name": "fare_amount"
+            },
+            {
+              "name": "tip_amount"
+            },
+            {
+              "name": "payment_type"
+            }
+          ],
           "filePath": "../data/NYCtaxi/qd_index.json",
           "filtersUsed": [
             {

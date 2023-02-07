@@ -63,46 +63,46 @@ void reset_sdc(){
   o2 << std::setw(2) << metadata_json << std::endl;
 }
 
-void run_workload(){
+void run_workload(int index){
   auto begin = std::chrono::high_resolution_clock::now();
 
   { // 575989
     SDC::Dataframe table("NYCtaxi");
     table.filter("fare_amount", ">", "20");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
-    table.head(5);
+    table.head(index,5);
   }
   { // 120482
     SDC::Dataframe table("NYCtaxi");
     table.filter("tip_amount", ">", "10");
     // table.filter("tip_amount", ">=", "fare_amount", true);
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
-    table.head(5);
+    table.head(index,5);
   }
   { // 117956
     SDC::Dataframe table("NYCtaxi");
     table.filter("fare_amount", ">", "20");
     table.filter("tip_amount", ">", "10");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
-    table.head(5);
+    table.head(index,5);
   }
   { // 1379502
     SDC::Dataframe table("NYCtaxi");
     table.filter("tip_amount", "<", "2");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
-    table.head(5);
+    table.head(index,5);
   }
   { // 213742
     SDC::Dataframe table("NYCtaxi");
     table.filter("fare_amount", "<", "5");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
-    table.head(5);
+    table.head(index,5);
   }
   { // 910655
     SDC::Dataframe table("NYCtaxi");
     table.filter("VendorID", "<=", "1");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
-    table.head(5);
+    table.head(index,5);
   }
 
   auto end = std::chrono::high_resolution_clock::now();
@@ -118,9 +118,10 @@ void optimize(){
 int main(int argc, char** argv) {
 
   reset_sdc();
-  run_workload();
+  run_workload(1);
   optimize();
-  run_workload();
+  run_workload(2);
+  run_workload(3);
 
   return 0;
 }

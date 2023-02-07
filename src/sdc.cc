@@ -10,12 +10,12 @@
 
 namespace SDC{
 
-void Dataframe::head(int rows){
+void Dataframe::head(int use_index, int rows){
     // load meta data block (with indexes/tables)
     _metadata = load_metadata();
 
     // loads most suitable index for query
-    json index = load_index();
+    json index = load_index(use_index);
     
     // load data blocks from most suitable index
     std::shared_ptr<arrow::Table> table = load_data(index);
@@ -190,9 +190,9 @@ void Dataframe::filter(std::string column, std::string operator_, std::string co
     _filters.push_back(Filter(column, operator_, constant, is_col, get_col_dataType(column)));
 }
 
-json Dataframe::load_index(bool get_primary){
+json Dataframe::load_index(int use_index){
     json indexes = _metadata["indexes"];
-    if(indexes.size()==1 || get_primary){
+    if(indexes.size()==1 || use_index==1){
         using_primary_index = true;
         for(auto index: indexes){
             if(index["type"]=="primary"){
@@ -203,17 +203,39 @@ json Dataframe::load_index(bool get_primary){
         // should not reach this
         assert(1==2);
     }
-    else{
-        // idea: find most suitable index (has columns, built on filters)
+    else if(use_index==2){
+        // qd_tree index
+        json columnPartition;
+        for(auto& index: indexes){
+            if(index["type"]=="columnPartition"){
+                columnPartition = index;
+            }
+        }
 
-        // for now: use qd_tree index
-        json primary_index;
+        // check if qdTree has all required columns
+        bool has_all_columns = true;
+        for(const auto& proj: _projections){
+            bool found = false;
+            for(const auto& col: columnPartition["columns"]){
+                if(proj==col["name"]){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                has_all_columns = false;
+                break;
+            }
+        }
+        using_primary_index = false;
+        std::ifstream f(columnPartition["filePath"]);
+        return json::parse(f);
+    }
+    else if(use_index==3){
+        // qd_tree index
         json qd_tree;
         for(auto& index: indexes){
-            if(index["type"]=="primary"){
-                primary_index = index;
-            }
-            else if(index["type"]=="qdTree"){
+            if(index["type"]=="qdTree"){
                 qd_tree = index;
             }
         }
@@ -233,18 +255,9 @@ json Dataframe::load_index(bool get_primary){
                 break;
             }
         }
-        // use qd_tree
-        if(has_all_columns){
-            using_primary_index = false;
-            std::ifstream f(qd_tree["filePath"]);
-            return json::parse(f);
-        }
-        // use primary index
-        else{
-            using_primary_index = true;
-            std::ifstream f(primary_index["filePath"]);
-            return json::parse(f);
-        }
+        using_primary_index = false;
+        std::ifstream f(qd_tree["filePath"]);
+        return json::parse(f);
     }
 }
 
@@ -520,56 +533,10 @@ arrow::Status Dataframe::write_parquet_file(const std::shared_ptr<arrow::Table>&
   return arrow::Status::OK();
 }
 
-void Dataframe::optimize(){
-    // get table meta data
-    _metadata = load_metadata();
-
-    // build qd tree
-        // get all filters and projections
-    std::vector<Filter> workload_filters;
-    std::vector<std::string> workload_projections;
-    for(const auto& metadata_workload: _metadata["workload"]){
-        for(const auto& metadata_filter: metadata_workload["filters"]){
-            // load workload filters into Arrow arrays 
-            Filter filter(metadata_filter["column"], metadata_filter["operator"], metadata_filter["constantOrColumn"], metadata_filter["isCol"], get_col_dataType(metadata_filter["column"]));
-            if(std::find(workload_filters.begin(), workload_filters.end(), filter)==workload_filters.end()){
-                filter.true_count = metadata_filter["trueCount"];
-                filter.false_count = metadata_filter["falseCount"];
-                filter.boolean_mask = read_boolean_filter(metadata_filter["booleanMask"]);
-                workload_filters.push_back(filter);
-            }
-        }
-        for(const auto& metadata_projection: metadata_workload["projections"]){
-            // load workload filters into Arrow arrays 
-            if(std::find(workload_projections.begin(), workload_projections.end(), metadata_projection["name"])==workload_projections.end()){
-                workload_projections.push_back(metadata_projection["name"]);
-            }
-        }
-    }
-        
-    // build qd tree using:
-        // columns used in workload -> go through all queries' projections & filters
-        // boolean_masks for filters used -> 
-    QDTree qd = QDTree(workload_filters, workload_projections, _metadata);
-
-    // make sure all tuples are included
-    std::shared_ptr<arrow::Array> tuples_included = qd.leafNodes[0]->tuples;
-    for(size_t i=1; i<qd.leafNodes.size(); i++){
-        auto st = arrow::compute::CallFunction("or", {tuples_included, qd.leafNodes[i]->tuples});
-        tuples_included = st.ValueOrDie().make_array();
-    }
-    auto st = arrow::compute::CallFunction("invert", {tuples_included});
-    std::shared_ptr<arrow::Array> tuples_not_included = st.ValueOrDie().make_array();
-    st = arrow::compute::CallFunction("array_filter", {tuples_not_included, tuples_not_included});
-    assert(st.ValueOrDie().make_array()->length()==0);
-
-    // get data from primary index
-    json primary_index = load_index(true);
-    std::shared_ptr<arrow::Table> table = load_data(primary_index);
-
+void Dataframe::remove_index(std::string index_type){
     // remove previous qd tree index
     for(int i=0; i<_metadata["indexes"].size(); i++){
-        if(_metadata["indexes"][i]["type"]=="qdTree"){
+        if(_metadata["indexes"][i]["type"]==index_type){
             // remove data blocks
             std::ifstream f(_metadata["indexes"][i]["filePath"]);
             json index = json::parse(f);
@@ -583,9 +550,10 @@ void Dataframe::optimize(){
             break;
         }
     }
+    std::filesystem::create_directories(data_directory+"/"+index_type);
+}
 
-    std::filesystem::create_directories(data_directory+"/qd_index");
-
+json Dataframe::qdTree_metadata_file(QDTree qd, std::shared_ptr<arrow::Table> table){
     json qd_index;
     qd_index["table"] = _table_name;
     qd_index["indexType"] = "qdTree";
@@ -594,7 +562,7 @@ void Dataframe::optimize(){
     // write new data blocks, using qd tree filters on primary data
     int block_ids = 0;
     for(auto leafNode: qd.leafNodes){
-        std::string file_path = data_directory+"/qd_index/data_block_"+std::to_string(block_ids++)+".parquet";
+        std::string file_path = data_directory+"/qdTree/data_block_"+std::to_string(block_ids++)+".parquet";
         json dataBlock;
 
         // add ranges
@@ -615,12 +583,41 @@ void Dataframe::optimize(){
         assert(write_parquet_file(filtered_table, file_path).ok());
         qd_index["dataBlocks"].push_back(dataBlock);
     }
-    
-    // create qd index metadata
-    std::ofstream o(data_directory+"/qd_index.json");
-    o << std::setw(2) << qd_index << std::endl;
+    return qd_index;
+}
 
-    // update metadata
+json Dataframe::colPartition_metadata_file(ColPartition cp, std::shared_ptr<arrow::Table> table){
+    json cp_index;
+    cp_index["table"] = _table_name;
+    cp_index["indexType"] = "columnPartition";
+    cp_index["dataBlocks"] = {};
+
+    // write new data blocks, using cp partitions on primary data
+    int block_ids = 0;
+    for(auto partition: cp.partitions){
+        std::string file_path = data_directory+"/column_partition/data_block_"+std::to_string(block_ids++)+".parquet";
+        json dataBlock;
+
+        // add ranges
+        json json_range;
+        json_range["column"] = partition.column;
+        json_range["min"] = partition.min;
+        json_range["minInclusive"] = partition.min_inclusive;
+        json_range["max"] = partition.max;
+        json_range["maxInclusive"] = partition.max_inclusive;
+        json_range["colDataType"] = dataType_to_string(partition.col_data_type);
+        dataBlock["ranges"].push_back(json_range);
+        
+        dataBlock["filePath"] = file_path;
+        std::shared_ptr<arrow::Table> filtered_table = apply_filters_projections(table, cp.projections, {partition.tuples});
+        assert(write_parquet_file(filtered_table, file_path).ok());
+        dataBlock["numRows"] = partition.num_tuples;
+        cp_index["dataBlocks"].push_back(dataBlock);
+    }
+    return cp_index;
+}
+
+json Dataframe::metadata_qdTree_index(QDTree qd){
     json metadata_indexes_qd;
     metadata_indexes_qd["filePath"] = data_directory+"/qd_index.json";
     metadata_indexes_qd["type"] = "qdTree";
@@ -638,6 +635,99 @@ void Dataframe::optimize(){
         fil["constant"] = filter.constant_or_column;
         metadata_indexes_qd["filtersUsed"].push_back(fil);
     }
+    return metadata_indexes_qd;
+}
+
+json Dataframe::metadata_columnPartition_index(ColPartition cp){
+    json metadata_indexes_cp;
+    metadata_indexes_cp["filePath"] = data_directory+"/cp_index.json";
+    metadata_indexes_cp["type"] = "columnPartition";
+    metadata_indexes_cp["columns"] = {};
+    for(auto column: cp.projections){
+        json col;
+        col["name"] = column;
+        metadata_indexes_cp["columns"].push_back(col);
+    }
+    metadata_indexes_cp["filtersUsed"] = {};
+    for(auto filter: cp.filters){
+        json fil;
+        fil["column"] = filter.column;
+        fil["operator"] = filter.operator_;
+        fil["constant"] = filter.constant_or_column;
+        metadata_indexes_cp["filtersUsed"].push_back(fil);
+    }
+    return metadata_indexes_cp;
+}
+
+void Dataframe::optimize(){
+    // get table meta data
+    _metadata = load_metadata();
+
+    // get all filters and projections for qd tree
+    std::vector<Filter> workload_filters;
+    std::vector<std::string> workload_projections;
+    for(const auto& metadata_workload: _metadata["workload"]){
+        for(const auto& metadata_filter: metadata_workload["filters"]){
+            // load workload filters into Arrow arrays 
+            Filter filter(metadata_filter["column"], metadata_filter["operator"], metadata_filter["constantOrColumn"], metadata_filter["isCol"], get_col_dataType(metadata_filter["column"]));
+            if(std::find(workload_filters.begin(), workload_filters.end(), filter)==workload_filters.end()){
+                filter.true_count = metadata_filter["trueCount"];
+                filter.false_count = metadata_filter["falseCount"];
+                filter.boolean_mask = read_boolean_filter(metadata_filter["booleanMask"]);
+                workload_filters.push_back(filter);
+            }
+        }
+        for(const auto& metadata_projection: metadata_workload["projections"]){
+            // load workload filters into Arrow arrays 
+            if(std::find(workload_projections.begin(), workload_projections.end(), metadata_projection["name"])==workload_projections.end()){
+                workload_projections.push_back(metadata_projection["name"]);
+            }
+        }
+    }
+
+    // get table from primary index
+    json primary_index = load_index(true);
+    std::shared_ptr<arrow::Table> table = load_data(primary_index);
+ 
+    // ---------- COLUMN PARTITION ---------- //
+    ColPartition colP = ColPartition("fare_amount", workload_filters, workload_projections, _metadata);
+
+    remove_index("column_partition");
+
+    json colP_index_file = colPartition_metadata_file(colP, table);
+    
+    // write qd index metadata file
+    std::ofstream o(data_directory+"/cp_index.json");
+    o << std::setw(2) << colP_index_file << std::endl;
+
+    // update metadata
+    json metadata_indexes_cp = metadata_columnPartition_index(colP);
+    _metadata["indexes"].push_back(metadata_indexes_cp);
+
+    
+    // ---------- QD TREE ---------- //
+    QDTree qd = QDTree(workload_filters, workload_projections, _metadata);
+
+    // make sure all tuples are included
+    std::shared_ptr<arrow::Array> tuples_included = qd.leafNodes[0]->tuples;
+    for(size_t i=1; i<qd.leafNodes.size(); i++){
+        auto st = arrow::compute::CallFunction("or", {tuples_included, qd.leafNodes[i]->tuples});
+        tuples_included = st.ValueOrDie().make_array();
+    }
+    auto st = arrow::compute::CallFunction("invert", {tuples_included});
+    std::shared_ptr<arrow::Array> tuples_not_included = st.ValueOrDie().make_array();
+    st = arrow::compute::CallFunction("array_filter", {tuples_not_included, tuples_not_included});
+    assert(st.ValueOrDie().make_array()->length()==0);
+
+    remove_index("qdTree");
+    json qd_index = qdTree_metadata_file(qd, table);
+    
+    // write qd index metadata file
+    std::ofstream o2(data_directory+"/qd_index.json");
+    o2 << std::setw(2) << qd_index << std::endl;
+
+    // update metadata
+    json metadata_indexes_qd = metadata_qdTree_index(qd);
     _metadata["indexes"].push_back(metadata_indexes_qd);
 
     // read in file, replace table metadata
@@ -651,8 +741,8 @@ void Dataframe::optimize(){
     } 
 
     // write out updated metadata
-    std::ofstream o2("../data/metadata.json");
-    o2 << std::setw(2) << metadata_json << std::endl;
+    std::ofstream o3("../data/metadata.json");
+    o3 << std::setw(2) << metadata_json << std::endl;
 }
 
 }

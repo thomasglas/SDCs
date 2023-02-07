@@ -1,0 +1,48 @@
+{
+  "dataBlocks": [
+    {
+      "filePath": "../data/NYCtaxi/column_partition/data_block_0.parquet",
+      "numRows": 213742,
+      "ranges": [
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "5",
+          "maxInclusive": false,
+          "min": "",
+          "minInclusive": false
+        }
+      ]
+    },
+    {
+      "filePath": "../data/NYCtaxi/column_partition/data_block_1.parquet",
+      "numRows": 2384663,
+      "ranges": [
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "20",
+          "maxInclusive": true,
+          "min": "",
+          "minInclusive": false
+        }
+      ]
+    },
+    {
+      "filePath": "../data/NYCtaxi/column_partition/data_block_2.parquet",
+      "numRows": 575989,
+      "ranges": [
+        {
+          "colDataType": "double",
+          "column": "fare_amount",
+          "max": "",
+          "maxInclusive": false,
+          "min": "20",
+          "minInclusive": false
+        }
+      ]
+    }
+  ],
+  "indexType": "columnPartition",
+  "table": "NYCtaxi"
+}
