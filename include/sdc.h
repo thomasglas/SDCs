@@ -24,8 +24,8 @@ namespace SDC{
 
 class Dataframe {
     public:
-        Dataframe(std::string table, bool verbose=false)
-        : _table_name(table), _verbose(verbose), _data_directory("../data/"+table){};
+        Dataframe(std::string table, bool add_latency=false, bool verbose=false)
+        : _table_name(table), _add_latency(add_latency), _verbose(verbose), _data_directory("../data/"+table){};
         void head(int use_index=1, int rows=0);
         void filter(std::string column, std::string operator_, std::string constant, bool is_col=false);
         void projection(std::vector<std::string> projections);
@@ -40,6 +40,7 @@ class Dataframe {
         json _metadata;
         bool _using_primary_index;
         bool _verbose;
+        bool _add_latency;
         void update_metadata();
         json load_metadata();
         json load_index(int use_index);
@@ -52,6 +53,7 @@ class Dataframe {
         json metadata_qdTree_index(QDTree qd);
         json colPartition_metadata_file(ColPartition cp, std::shared_ptr<arrow::Table> table);
         json metadata_columnPartition_index(ColPartition cp);
+        std::ifstream read_file(std::string path, bool add_latency);
 
         // arrow & parquet
         std::shared_ptr<arrow::Table> load_parquet(std::string file_path);

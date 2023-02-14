@@ -7,35 +7,11 @@
 #include <filesystem>
 #include <string>
 #include <algorithm>
-#include <aws/core/Aws.h>
-#include <aws/s3/S3Client.h>
-#include <aws/s3/model/PutObjectRequest.h>
-#include <aws/s3/model/GetObjectRequest.h>
+#include <chrono>
+#include <thread>
+#include <filesystem>
 
 namespace SDC{
-
-// void testAWS(){
-//     Aws::SDKOptions options;
-//     Aws::InitAPI(options);
-
-//     Aws::S3::S3Client s3_client;
-//     Aws::S3::Model::PutObjectRequest putRequest;
-//     putRequest.SetBucket("bucketName");
-//     putRequest.SetKey("fileName");
-//     std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("SampleAllocationTag",
-//                                                 fileName.c_str(), std::ios_base::in | std::ios_base::binary);
-//     putRequest.SetBody(inputData);
-//     Aws::S3::Model::PutObjectOutcome outcome = s3_client.PutObject(putRequest);
-    
-//     Aws::S3::Model::GetObjectRequest getRequest;
-//     getRequest.SetBucket("bucketName");
-//     getRequest.SetKey("fileName");
-//     Aws::S3::Model::GetObjectOutcome outcome = s3_client.GetObject(getRequest);
-
-//     //use the sdk
-
-//     Aws::ShutdownAPI(options);
-// }
 
 void Dataframe::head(int use_index, int rows){
     // load meta data block (with indexes/tables)
@@ -67,6 +43,18 @@ void Dataframe::head(int use_index, int rows){
 
     // update metadata (& upload boolean mask, if primary key was used)
     update_metadata();
+}
+
+std::ifstream Dataframe::read_file(std::string path, bool add_latency){
+    if(add_latency){
+        // latency
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        // throughput
+        // 10GB/s = 10000B/s
+        uintmax_t sleep = std::filesystem::file_size("results.txt")/10000;
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+    }
+    return std::ifstream(path);
 }
 
 dataType Dataframe::get_col_dataType(std::string column){
@@ -225,7 +213,7 @@ json Dataframe::load_index(int use_index){
         _using_primary_index = true;
         for(auto index: indexes){
             if(index["type"]=="primary"){
-                std::ifstream f(index["filePath"]);
+                std::ifstream f = read_file(index["filePath"], _add_latency);
                 return json::parse(f);
             }
         }       
@@ -242,7 +230,7 @@ json Dataframe::load_index(int use_index){
         }
 
         _using_primary_index = false;
-        std::ifstream f(columnPartition["filePath"]);
+        std::ifstream f = read_file(columnPartition["filePath"], _add_latency);
         return json::parse(f);
     }
     else{
@@ -271,7 +259,7 @@ json Dataframe::load_index(int use_index){
             }
         }
         _using_primary_index = false;
-        std::ifstream f(qd_tree["filePath"]);
+        std::ifstream f = read_file(qd_tree["filePath"], _add_latency);
         return json::parse(f);
     }
 }
@@ -396,7 +384,7 @@ std::shared_ptr<arrow::Table> Dataframe::load_parquet(std::string file_path){
 }
 
 json Dataframe::load_metadata(){
-    std::ifstream f("../data/metadata.json");
+    std::ifstream f = read_file("../data/metadata.json", _add_latency);
     json metadata_json = json::parse(f);
     for(auto& table: metadata_json["tables"]){
         if(table["name"]==_table_name){
@@ -487,7 +475,7 @@ void Dataframe::update_metadata(){
     }
 
     // read in file, replace table metadata
-    std::ifstream f("../data/metadata.json");
+    std::ifstream f = read_file("../data/metadata.json", _add_latency);
     json metadata_json = json::parse(f);
     for(auto& table: metadata_json["tables"]){
         if(table["name"]==_table_name){
@@ -558,7 +546,7 @@ void Dataframe::remove_index(std::string index_type){
     for(int i=0; i<_metadata["indexes"].size(); i++){
         if(_metadata["indexes"][i]["type"]==index_type){
             // remove data blocks
-            std::ifstream f(_metadata["indexes"][i]["filePath"]);
+            std::ifstream f = read_file(_metadata["indexes"][i]["filePath"], _add_latency);
             json index = json::parse(f);
             for(auto dataBlock: index["dataBlocks"]){
                 std::filesystem::remove(std::string(dataBlock["filePath"]));
@@ -749,7 +737,7 @@ void Dataframe::optimize(std::string partition_column, int min_leaf_size){
     _metadata["indexes"].push_back(metadata_indexes_qd);
 
     // read in file, replace table metadata
-    std::ifstream f("../data/metadata.json");
+    std::ifstream f = read_file("../data/metadata.json", _add_latency);
     json metadata_json = json::parse(f);
     for(auto& table: metadata_json["tables"]){
         if(table["name"]==_table_name){

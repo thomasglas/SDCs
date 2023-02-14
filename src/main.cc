@@ -34,6 +34,7 @@ using json = nlohmann::json;
 
 int qdTree_min_block_size = 10000;
 bool verbose = false;
+bool add_latency = true;
 
 enum query_index{
   primary,
@@ -88,39 +89,39 @@ void run_workload_1(int index){
   auto begin = std::chrono::high_resolution_clock::now();
 
   { // 575989
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("fare_amount", ">", "20");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
     table.head(index,5);
   }
   { // 120482
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("tip_amount", ">", "10");
     // table.filter("tip_amount", ">=", "fare_amount", true);
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
     table.head(index,5);
   }
   { // 117956
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("fare_amount", ">", "20");
     table.filter("tip_amount", ">", "10");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
     table.head(index,5);
   }
   { // 1379502
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("tip_amount", "<", "2");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
     table.head(index,5);
   }
   { // 213742
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("fare_amount", "<", "5");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
     table.head(index,5);
   }
   { // 910655
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("VendorID", "<=", "1");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
     table.head(index,5);
@@ -135,7 +136,7 @@ void run_workload_2(int index){
   auto begin = std::chrono::high_resolution_clock::now();
 
   { // 17
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("improvement_surcharge", ">", "0");
     table.filter("tolls_amount", ">=", "10");
     table.filter("tolls_amount", "<=", "10");
@@ -144,21 +145,21 @@ void run_workload_2(int index){
     table.head(index,5);
   }
   { // 89936
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("trip_distance", ">", "10");
     table.filter("tip_amount", "<", "5");
     table.projection({"tip_amount", "total_amount"});
     table.head(index,5);
   }
   { // 1839059
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("mta_tax", ">", "0");
     table.filter("extra", ">", "0");
     table.projection({"mta_tax", "extra", "total_amount", "trip_distance"});
     table.head(index,5);
   }
   { // 2802897
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("congestion_surcharge", ">", "0");
     table.filter("congestion_surcharge", "<=", "5");
     table.projection({"PULocationID", "DOLocationID", "total_amount", "congestion_surcharge"});
@@ -174,25 +175,25 @@ void run_workload_3(int index){
   auto begin = std::chrono::high_resolution_clock::now();
 
   { // 2994311
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("total_amount", "<", "60");
     table.projection({"fare_amount", "tip_amount", "total_amount", "trip_distance"});
     table.head(index,5);
   }
   { // 2894157
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("trip_distance", "<=", "10");
     table.projection({"fare_amount", "tip_amount", "total_amount", "trip_distance"});
     table.head(index,5);
   }
   { // 401169
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("tip_amount", ">=", "5");
     table.projection({"fare_amount", "tip_amount", "total_amount", "trip_distance"});
     table.head(index,5);
   }
   { // 596484
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("fare_amount", ">=", "20");
     table.projection({"fare_amount", "tip_amount", "total_amount", "trip_distance"});
     table.head(index,5);
@@ -207,7 +208,7 @@ void run_workload_4(int index){
   auto begin = std::chrono::high_resolution_clock::now();
 
   { // 360655
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("total_amount", "<", "10");
     table.projection({"VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance",
       "RatecodeID", "store_and_fwd_flag", "PULocationID", "DOLocationID", "payment_type", "fare_amount", "extra", "mta_tax",
@@ -215,7 +216,7 @@ void run_workload_4(int index){
     table.head(index,5);
   }
   { // 1794426
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("total_amount", ">=", "10");
     table.filter("total_amount", "<", "20");
     table.projection({"VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance",
@@ -224,7 +225,7 @@ void run_workload_4(int index){
     table.head(index,5);
   }
   { // 519528
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("total_amount", ">=", "20");
     table.filter("total_amount", "<", "30");
     table.projection({"VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance",
@@ -233,7 +234,7 @@ void run_workload_4(int index){
     table.head(index,5);
   }
   { // 147278
-    SDC::Dataframe table("NYCtaxi", verbose);
+    SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("total_amount", ">=", "30");
     table.filter("total_amount", "<", "40");
     table.projection({"VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance",
@@ -248,7 +249,7 @@ void run_workload_4(int index){
 }
 
 void optimize(std::string column_partition, int min_leaf_size){
-  SDC::Dataframe table("NYCtaxi", verbose);
+  SDC::Dataframe table("NYCtaxi", add_latency, verbose);
   table.optimize(column_partition, min_leaf_size);
 }
 
