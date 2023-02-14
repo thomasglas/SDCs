@@ -24,24 +24,22 @@ namespace SDC{
 
 class Dataframe {
     public:
-        Dataframe(std::string table)
-        : _table_name(table)
-        {
-            data_directory = "../data/"+_table_name;
-        };
+        Dataframe(std::string table, bool verbose=false)
+        : _table_name(table), _verbose(verbose), _data_directory("../data/"+table){};
         void head(int use_index=1, int rows=0);
         void filter(std::string column, std::string operator_, std::string constant, bool is_col=false);
         void projection(std::vector<std::string> projections);
-        void optimize();
+        void optimize(std::string partition_column, int min_leaf_size);
 
     private:
-        std::string data_directory;
+        std::string _data_directory;
         std::string _table_name;
         std::vector<Filter> _filters;
         std::vector<std::string> _projections;
         std::vector<std::string> _required_columns;
         json _metadata;
-        bool using_primary_index;
+        bool _using_primary_index;
+        bool _verbose;
         void update_metadata();
         json load_metadata();
         json load_index(int use_index);

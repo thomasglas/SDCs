@@ -8,8 +8,8 @@
 
 namespace SDC{
 
-ColPartition::ColPartition(std::string partition_column, std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata)
-:projections(projections),filters(filters)
+ColPartition::ColPartition(std::string partition_column, std::vector<Filter>& filters, json& metadata)
+:filters(filters)
 {
     std::vector<Filter> column_filters;
     // group filters by column
@@ -23,12 +23,14 @@ ColPartition::ColPartition(std::string partition_column, std::vector<Filter>& fi
 
     std::sort(column_filters.begin(), column_filters.end());
     // make cuts at each filter cut, save bool mask for each leaf node
+    std::string previous_cut = "";
+    bool previous_max_inclusive = false;
     std::shared_ptr<arrow::Array> remaining_tuples = nullptr;
     for(auto const& filter: column_filters){
         bool max_inclusive = false;
         std::shared_ptr<arrow::Array> partition_tuples;
 
-        if(filter.operator_ == "<" || filter.operator_ == "<="){
+        if((filter.operator_ == "<" || filter.operator_ == "<=") && filter.constant_or_column!=previous_cut){
             if(filter.operator_ == "<="){
                 max_inclusive = true;
             }
@@ -54,12 +56,14 @@ ColPartition::ColPartition(std::string partition_column, std::vector<Filter>& fi
                 partition_tuples = st.ValueOrDie().make_array();
             }
         }
-        else if(filter.operator_ == ">" || filter.operator_ == ">="){
+        else if((filter.operator_ == ">" || filter.operator_ == ">=") && filter.constant_or_column!=previous_cut){
             if(filter.operator_ == ">"){
                 max_inclusive = true;
             }
             if(partitions.size()==0){
-                partition_tuples = filter.boolean_mask;
+                auto st = arrow::compute::CallFunction("invert", {filter.boolean_mask});
+                auto inverted_filter = st.ValueOrDie().make_array();
+                partition_tuples = inverted_filter;
             }
             else if(partitions.size()==1){
                 // deduct tuples from previous partition from this partition
@@ -87,8 +91,9 @@ ColPartition::ColPartition(std::string partition_column, std::vector<Filter>& fi
         else{
             continue;
         }
-        
-        auto part = Partition(partition_column, "", false, filter.constant_or_column, max_inclusive, filter.type);
+        auto part = Partition(partition_column, previous_cut, !max_inclusive, filter.constant_or_column, max_inclusive, filter.type);
+        previous_cut = filter.constant_or_column;
+        previous_max_inclusive = max_inclusive;
 
         auto st = arrow::compute::CallFunction("array_filter", {partition_tuples, partition_tuples});
         part.num_tuples = st.ValueOrDie().make_array()->length();

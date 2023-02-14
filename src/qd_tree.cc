@@ -8,9 +8,15 @@
 
 namespace SDC{
 
-QDTree::QDTree(std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata)
-:columns(projections), filters(filters), metadata(metadata){
+QDTree::QDTree(std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata, int leaf_min_size)
+:columns(projections), filters(filters), metadata(metadata), leaf_min_size(leaf_min_size){
     assert(filters.size()>0);
+    for(const auto& filter: filters){
+        if(std::find(columns.begin(), columns.end(), filter.column)==columns.end()){
+            columns.push_back(filter.column);
+        }
+    }
+
     root = std::make_shared<QDNode>();
     root->num_tuples = metadata["num_rows"];
 
@@ -29,8 +35,6 @@ QDTree::QDTree(std::vector<Filter>& filters, std::vector<std::string>& projectio
         }
         nodeQueue.pop();
     }
-    
-    std::cout << root->print() << std::endl;
 }
 
 std::shared_ptr<arrow::Array> QDTree::get_filter_mask(json& query_filter){
@@ -374,7 +378,7 @@ std::vector<QDNodeRange> QDTree::add_range(std::vector<QDNodeRange> ranges, cons
         if(range.column==filter.column){
             switch(range.col_data_type){
                 case dataType::int64:{
-                    if(filter.operator_=="<" && range.max!="" && !filter.is_col && std::stoi(filter.constant_or_column)<std::stoi(range.max)){
+                    if(filter.operator_=="<" && !filter.is_col && (range.max=="" || std::stoi(filter.constant_or_column)<std::stoi(range.max))){
                         if(is_true_child){
                             range.max = filter.constant_or_column;
                             range.max_inclusive = false;
@@ -384,7 +388,7 @@ std::vector<QDNodeRange> QDTree::add_range(std::vector<QDNodeRange> ranges, cons
                             range.min_inclusive = true;
                         }
                     }
-                    else if(filter.operator_=="=<" && range.max!="" && !filter.is_col && std::stoi(filter.constant_or_column)<std::stoi(range.max)){
+                    else if(filter.operator_=="=<" && !filter.is_col && (range.max=="" || std::stoi(filter.constant_or_column)<std::stoi(range.max))){
                          if(is_true_child){
                             range.max = filter.constant_or_column;
                             range.max_inclusive = true;
@@ -394,7 +398,7 @@ std::vector<QDNodeRange> QDTree::add_range(std::vector<QDNodeRange> ranges, cons
                             range.min_inclusive = false;
                          }
                     }
-                    else if(filter.operator_==">" && range.min!= "" && !filter.is_col && std::stoi(filter.constant_or_column)>std::stoi(range.min)){
+                    else if(filter.operator_==">" && !filter.is_col && (range.min=="" || std::stoi(filter.constant_or_column)>std::stoi(range.min))){
                         if(is_true_child){
                             range.max = filter.constant_or_column;
                             range.max_inclusive = false;
@@ -404,7 +408,7 @@ std::vector<QDNodeRange> QDTree::add_range(std::vector<QDNodeRange> ranges, cons
                             range.min_inclusive = true;
                         }
                     }
-                    else if(filter.operator_==">=" && range.min!= "" && !filter.is_col && std::stoi(filter.constant_or_column)>std::stoi(range.min)){
+                    else if(filter.operator_==">=" && !filter.is_col && (range.min=="" || std::stoi(filter.constant_or_column)>std::stoi(range.min))){
                         if(is_true_child){
                             range.max = filter.constant_or_column;
                             range.max_inclusive = true;
@@ -417,7 +421,7 @@ std::vector<QDNodeRange> QDTree::add_range(std::vector<QDNodeRange> ranges, cons
                     break;
                 }
                 case dataType::double_:{
-                    if(filter.operator_=="<" && range.max!="" && !filter.is_col && std::stod(filter.constant_or_column)<std::stod(range.max)){
+                    if(filter.operator_=="<" && !filter.is_col && (range.max=="" || std::stod(filter.constant_or_column)<std::stod(range.max))){
                         if(is_true_child){
                             range.max = filter.constant_or_column;
                             range.max_inclusive = false;
@@ -427,7 +431,7 @@ std::vector<QDNodeRange> QDTree::add_range(std::vector<QDNodeRange> ranges, cons
                             range.min_inclusive = true;
                         }
                     }
-                    else if(filter.operator_=="=<" && range.max!="" && !filter.is_col && std::stod(filter.constant_or_column)<std::stod(range.max)){
+                    else if(filter.operator_=="=<" && !filter.is_col && (range.max=="" || std::stod(filter.constant_or_column)<std::stod(range.max))){
                         if(is_true_child){
                             range.max = filter.constant_or_column;
                             range.max_inclusive = true;
@@ -437,7 +441,7 @@ std::vector<QDNodeRange> QDTree::add_range(std::vector<QDNodeRange> ranges, cons
                             range.min_inclusive = false;
                         }
                     }
-                    else if(filter.operator_==">" && range.min!= "" && !filter.is_col && std::stod(filter.constant_or_column)>std::stod(range.min)){
+                    else if(filter.operator_==">" && !filter.is_col && (range.min=="" || std::stod(filter.constant_or_column)>std::stod(range.min))){
                         if(is_true_child){
                             range.max = filter.constant_or_column;
                             range.max_inclusive = false;
@@ -447,7 +451,7 @@ std::vector<QDNodeRange> QDTree::add_range(std::vector<QDNodeRange> ranges, cons
                             range.min_inclusive = true;
                         }
                     }
-                    else if(filter.operator_==">=" && range.min!= "" && !filter.is_col && std::stod(filter.constant_or_column)>std::stod(range.min)){
+                    else if(filter.operator_==">=" && !filter.is_col && (range.min=="" || std::stod(filter.constant_or_column)>std::stod(range.min))){
                         if(is_true_child){
                             range.max = filter.constant_or_column;
                             range.max_inclusive = true;

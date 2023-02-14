@@ -34,7 +34,6 @@ set(CMAKE_CXX_STANDARD 17)
 message(STATUS "Arrow version: ${ARROW_VERSION}")
 message(STATUS "Arrow SO version: ${ARROW_FULL_SO_VERSION}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER}")
- 
 
 file(GLOB SOURCES src/*.cc)
 
@@ -43,7 +42,7 @@ add_executable(sdcs ${SOURCES})
 target_include_directories(sdcs PRIVATE include/)
 
 if(ARROW_LINK_SHARED)
-  target_link_libraries(sdcs PRIVATE Arrow::arrow_shared Parquet::parquet_shared)
+  target_link_libraries(sdcs PRIVATE Arrow::arrow_shared Parquet::parquet_shared ${AWSSDK_LINK_LIBRARIES})
 else()
-  target_link_libraries(sdcs PRIVATE Arrow::arrow_static Parquet::parquet_static)
+  target_link_libraries(sdcs PRIVATE Arrow::arrow_static Parquet::parquet_static ${AWSSDK_LINK_LIBRARIES})
 endif()

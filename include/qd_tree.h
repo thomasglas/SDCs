@@ -64,7 +64,7 @@ class QDNode {
 
 class QDTree {
     public:
-        QDTree(std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata);
+        QDTree(std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata, int leaf_min_size);
         
         std::vector<std::shared_ptr<QDNode>> leafNodes;
 
@@ -73,14 +73,14 @@ class QDTree {
 
         // filters used by workload
         std::vector<Filter> filters;
+
+        // root node of QDTree
+        std::shared_ptr<QDNode> root;
     private:
 
         json metadata;
 
-        // root node of QDTree
-        std::shared_ptr<QDNode> root;
-
-        size_t leaf_min_size = 1000;
+        int leaf_min_size;
 
         std::vector<QDNodeRange> add_range(std::vector<QDNodeRange> ranges, const Filter& filter, bool true_false_child);
 

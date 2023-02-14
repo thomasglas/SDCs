@@ -32,9 +32,8 @@ class Partition {
 
 class ColPartition {
     public:
-        ColPartition(std::string partition_column, std::vector<Filter>& filters, std::vector<std::string>& projections, json& metadata);
+        ColPartition(std::string partition_column, std::vector<Filter>& filters, json& metadata);
         std::vector<Partition> partitions;
-        std::vector<std::string> projections;
         std::vector<Filter> filters;
 };
 
