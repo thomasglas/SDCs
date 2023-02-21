@@ -49,7 +49,7 @@ void Dataframe::head(int use_index, int rows){
 }
 
 void Dataframe::add_latency(std::string path){
-    std::cout << "get file: " << path << std::endl;
+    // std::cout << "get file: " << path << std::endl;
     if(_add_latency){
         // latency
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

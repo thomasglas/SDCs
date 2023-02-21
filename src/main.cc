@@ -92,8 +92,7 @@ void reset_sdc(){
 void run_workload_1(int index){
   auto begin = std::chrono::high_resolution_clock::now();
 
-  // 575989
-  { 
+  { // 575989
     SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("fare_amount", ">", "20");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
@@ -307,7 +306,6 @@ int main(int argc, char** argv) {
       verbose = true;
     }
   }
-
   run_workload(workload);
   reset_sdc();
   
