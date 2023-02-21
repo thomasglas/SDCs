@@ -35,6 +35,9 @@ void Dataframe::head(int use_index, int rows){
     // apply projections
     std::shared_ptr<arrow::Table> filtered_table = apply_filters_projections(table, _projections, filter_mask);
 
+    // apply group by
+
+
     // print
     if(_verbose){
         std::cout << "number of filtered_rows: " << filtered_table->num_rows() << std::endl;
@@ -45,16 +48,17 @@ void Dataframe::head(int use_index, int rows){
     update_metadata();
 }
 
-std::ifstream Dataframe::read_file(std::string path, bool add_latency){
-    if(add_latency){
+void Dataframe::add_latency(std::string path){
+    std::cout << "get file: " << path << std::endl;
+    if(_add_latency){
         // latency
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         // throughput
         // 10GB/s = 10000B/s
-        uintmax_t sleep = std::filesystem::file_size("results.txt")/10000;
+        uintmax_t sleep = std::filesystem::file_size(path)/10000;
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
     }
-    return std::ifstream(path);
+    return;
 }
 
 dataType Dataframe::get_col_dataType(std::string column){
@@ -71,6 +75,25 @@ dataType Dataframe::get_col_dataType(std::string column){
         }
     }
     return result;
+}
+
+void Dataframe::apply_group_by(const std::shared_ptr<arrow::Table>& table){
+    // // count options
+    // arrow::compute::CountOptions options;
+    // options.mode = arrow::compute::CountOptions::ONLY_VALID;
+    
+    // // scalar options
+    // arrow::compute::ScalarAggregateOptions scalar_aggregate_options;
+    // scalar_aggregate_options.skip_nulls = false;
+
+    // arrow::compute::HashAggregateFunction("hash_count", 
+    //     arrow::compute::Arity::Unary(), arrow::compute::FunctionDoc(), &options);
+
+    // arrow::compute::
+}
+
+void Dataframe::group_by(std::string function_name){
+    _group_by = function_name;
 }
 
 std::shared_ptr<arrow::Table> Dataframe::apply_filters_projections(const std::shared_ptr<arrow::Table>& table, const std::vector<std::string>& projections, std::vector<std::shared_ptr<arrow::Array>> boolean_masks){
@@ -213,7 +236,7 @@ json Dataframe::load_index(int use_index){
         _using_primary_index = true;
         for(auto index: indexes){
             if(index["type"]=="primary"){
-                std::ifstream f = read_file(index["filePath"], _add_latency);
+                std::ifstream f(index["filePath"]);
                 return json::parse(f);
             }
         }       
@@ -230,7 +253,7 @@ json Dataframe::load_index(int use_index){
         }
 
         _using_primary_index = false;
-        std::ifstream f = read_file(columnPartition["filePath"], _add_latency);
+        std::ifstream f(columnPartition["filePath"]);
         return json::parse(f);
     }
     else{
@@ -259,7 +282,7 @@ json Dataframe::load_index(int use_index){
             }
         }
         _using_primary_index = false;
-        std::ifstream f = read_file(qd_tree["filePath"], _add_latency);
+        std::ifstream f(qd_tree["filePath"]);
         return json::parse(f);
     }
 }
@@ -365,6 +388,7 @@ std::shared_ptr<arrow::Table> Dataframe::load_data(json index){
 }
 
 std::shared_ptr<arrow::Table> Dataframe::load_parquet(std::string file_path){
+    add_latency(file_path);
     std::shared_ptr<arrow::io::ReadableFile> infile;
     PARQUET_ASSIGN_OR_THROW(infile,arrow::io::ReadableFile::Open(file_path,arrow::default_memory_pool()));
 
@@ -384,7 +408,7 @@ std::shared_ptr<arrow::Table> Dataframe::load_parquet(std::string file_path){
 }
 
 json Dataframe::load_metadata(){
-    std::ifstream f = read_file("../data/metadata.json", _add_latency);
+    std::ifstream f("../data/metadata.json");
     json metadata_json = json::parse(f);
     for(auto& table: metadata_json["tables"]){
         if(table["name"]==_table_name){
@@ -475,7 +499,7 @@ void Dataframe::update_metadata(){
     }
 
     // read in file, replace table metadata
-    std::ifstream f = read_file("../data/metadata.json", _add_latency);
+    std::ifstream f("../data/metadata.json");
     json metadata_json = json::parse(f);
     for(auto& table: metadata_json["tables"]){
         if(table["name"]==_table_name){
@@ -546,7 +570,7 @@ void Dataframe::remove_index(std::string index_type){
     for(int i=0; i<_metadata["indexes"].size(); i++){
         if(_metadata["indexes"][i]["type"]==index_type){
             // remove data blocks
-            std::ifstream f = read_file(_metadata["indexes"][i]["filePath"], _add_latency);
+            std::ifstream f(_metadata["indexes"][i]["filePath"]);
             json index = json::parse(f);
             for(auto dataBlock: index["dataBlocks"]){
                 std::filesystem::remove(std::string(dataBlock["filePath"]));
@@ -737,7 +761,7 @@ void Dataframe::optimize(std::string partition_column, int min_leaf_size){
     _metadata["indexes"].push_back(metadata_indexes_qd);
 
     // read in file, replace table metadata
-    std::ifstream f = read_file("../data/metadata.json", _add_latency);
+    std::ifstream f("../data/metadata.json");
     json metadata_json = json::parse(f);
     for(auto& table: metadata_json["tables"]){
         if(table["name"]==_table_name){

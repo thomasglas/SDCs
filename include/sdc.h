@@ -29,11 +29,13 @@ class Dataframe {
         void head(int use_index=1, int rows=0);
         void filter(std::string column, std::string operator_, std::string constant, bool is_col=false);
         void projection(std::vector<std::string> projections);
+        void group_by(std::string function_name);
         void optimize(std::string partition_column, int min_leaf_size);
 
     private:
         std::string _data_directory;
         std::string _table_name;
+        std::string _group_by;
         std::vector<Filter> _filters;
         std::vector<std::string> _projections;
         std::vector<std::string> _required_columns;
@@ -53,7 +55,8 @@ class Dataframe {
         json metadata_qdTree_index(QDTree qd);
         json colPartition_metadata_file(ColPartition cp, std::shared_ptr<arrow::Table> table);
         json metadata_columnPartition_index(ColPartition cp);
-        std::ifstream read_file(std::string path, bool add_latency);
+        void add_latency(std::string path);
+        void apply_group_by(const std::shared_ptr<arrow::Table>& table);
 
         // arrow & parquet
         std::shared_ptr<arrow::Table> load_parquet(std::string file_path);

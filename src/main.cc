@@ -34,7 +34,7 @@ using json = nlohmann::json;
 
 int qdTree_min_block_size = 10000;
 bool verbose = false;
-bool add_latency = true;
+bool add_latency = false;
 
 enum query_index{
   primary,
@@ -52,6 +52,7 @@ void reset_sdc(){
       }
     }
     table["workload"].clear();
+    std::vector<int> erase_indexes;
     // remove qd tree index
     for(int i=0; i<table["indexes"].size(); i++){
       if(table["indexes"][i]["type"]=="qdTree"){
@@ -64,7 +65,7 @@ void reset_sdc(){
           // remove index file
           std::filesystem::remove(std::string(table["indexes"][i]["filePath"]));
           // remove qd index
-          table["indexes"].erase(i);
+          erase_indexes.push_back(i);
       }
       else if(table["indexes"][i]["type"]=="columnPartition"){
           // remove data blocks
@@ -76,8 +77,11 @@ void reset_sdc(){
           // remove index file
           std::filesystem::remove(std::string(table["indexes"][i]["filePath"]));
           // remove columnPartition index
-          table["indexes"].erase(i);
+          erase_indexes.push_back(i);
       }
+    }
+    for(int i=erase_indexes.size()-1; i>=0; i--){
+      table["indexes"].erase(erase_indexes[i]);
     }
   }
   // write out updated metadata
@@ -88,7 +92,8 @@ void reset_sdc(){
 void run_workload_1(int index){
   auto begin = std::chrono::high_resolution_clock::now();
 
-  { // 575989
+  // 575989
+  { 
     SDC::Dataframe table("NYCtaxi", add_latency, verbose);
     table.filter("fare_amount", ">", "20");
     table.projection({"VendorID", "fare_amount", "tip_amount", "payment_type"});
@@ -253,44 +258,58 @@ void optimize(std::string column_partition, int min_leaf_size){
   table.optimize(column_partition, min_leaf_size);
 }
 
+void run_workload(int i){
+  std::cout << "Workload " << i << std::endl;
+  switch(i){
+    case 1:{
+      reset_sdc();
+      run_workload_1(1);
+      optimize("tip_amount", qdTree_min_block_size);
+      run_workload_1(2);
+      run_workload_1(3);
+      break;
+    }
+    case 2:{
+      reset_sdc();
+      run_workload_2(1);
+      optimize("improvement_surcharge", qdTree_min_block_size);
+      run_workload_2(2);
+      run_workload_2(3);
+      break;
+    }
+    case 3:{
+      reset_sdc();
+      run_workload_3(1);
+      optimize("fare_amount", qdTree_min_block_size);
+      run_workload_3(2);
+      run_workload_3(3);
+      break;
+    }
+    case 4:{
+      reset_sdc();
+      run_workload_4(1);
+      optimize("total_amount", qdTree_min_block_size);
+      run_workload_4(2);
+      run_workload_4(3);
+      break;
+    }
+  }
+}
+
 int main(int argc, char** argv) {
-  if(argc==2){
-    qdTree_min_block_size = std::stoi(argv[1]);
+
+  int workload = 1;
+
+  if(argc>1){
+    int workload = std::stoi(argv[1]);
+    qdTree_min_block_size = std::stoi(argv[2]);
+    if(argc==4 && argv[3]==std::string("-v")){
+      verbose = true;
+    }
   }
-  else if(argc==3 && argv[2]==std::string("-v")){
-    verbose = true;
-  }
-  /* ----- Workload 1 ----- */
-  std::cout << "Workload 1" << std::endl;
-  reset_sdc();
-  run_workload_1(1);
-  optimize("tip_amount", qdTree_min_block_size);
-  run_workload_1(2);
-  run_workload_1(3);
 
-  /* ----- Workload 2 ----- */
-  std::cout << "Workload 2" << std::endl;
+  run_workload(workload);
   reset_sdc();
-  run_workload_2(1);
-  optimize("improvement_surcharge", qdTree_min_block_size);
-  run_workload_2(2);
-  run_workload_2(3);
-
-  /* ----- Workload 3 ----- */
-  std::cout << "Workload 3" << std::endl;
-  reset_sdc();
-  run_workload_3(1);
-  optimize("fare_amount", qdTree_min_block_size);
-  run_workload_3(2);
-  run_workload_3(3);
-
-  /* ----- Workload 4 ----- */
-  std::cout << "Workload 4" << std::endl;
-  reset_sdc();
-  run_workload_4(1);
-  optimize("total_amount", qdTree_min_block_size);
-  run_workload_4(2);
-  run_workload_4(3);
   
   return 0;
 }
