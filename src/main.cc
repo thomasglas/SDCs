@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
   int workload = 1;
 
   if(argc>1){
-    int workload = std::stoi(argv[1]);
+    workload = std::stoi(argv[1]);
     qdTree_min_block_size = std::stoi(argv[2]);
     if(argc==4 && argv[3]==std::string("-v")){
       verbose = true;
