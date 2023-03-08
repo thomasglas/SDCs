@@ -53,9 +53,8 @@ void Dataframe::add_latency(std::string path){
     if(_add_latency){
         // latency
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        // throughput
-        // 10GB/s = 10000B/s
-        uintmax_t sleep = std::filesystem::file_size(path)/10000;
+        // throughput 1GB/s
+        uintmax_t sleep = std::filesystem::file_size(path)/1000/1000;
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
     }
     return;
