@@ -1,4 +1,3 @@
-[Work in progress]
 # Self-Organizing Data Containers (SDCs)
 
 ## What is this project?
